@@ -169,7 +169,7 @@ app1(PyListObject *self, PyObject *v)
             "cannot add more objects to list");
         return -1;
     }
-// 下面的函数 list_resize 会保存 ob_item 指向的位置能够容纳最少 n+1 个元素（PyObject *）
+	// 下面的函数 list_resize 会保存 ob_item 指向的位置能够容纳最少 n+1 个元素（PyObject *）
   // 如果容量不够就会进行扩容操作
     if (list_resize(self, n+1) == -1)
         return -1;
