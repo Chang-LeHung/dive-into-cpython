@@ -57,7 +57,7 @@ typedef struct _object {
 
 ## 列表操作函数源代码分析
 
-### 创建链表
+### 创建列表
 
 首先需要了解的是在 python 虚拟机内部为列表创建了一个数组，所有的创建的被释放的内存空间，并不会直接进行释放而是会将这些内存空间的首地址保存到这个数组当中，好让下一次申请创建新的列表的时候不需要再申请内存空间，而是直接将之前需要释放的内存直接进行复用即可。
 
@@ -140,5 +140,44 @@ TARGET(BUILD_LIST) {
 }
 ```
 
-从上面 BUILD_LIST 字节码对应的解释步骤可以知道，在解释执行字节码 BUILD_LIST 的时候确实调用了函数 PyList_New 创建一个新的链表。
+从上面 BUILD_LIST 字节码对应的解释步骤可以知道，在解释执行字节码 BUILD_LIST 的时候确实调用了函数 PyList_New 创建一个新的列表。
+
+### 列表 append 函数
+
+
+
+```c
+static PyObject *
+// 这个函数的传入参数是列表本身 self 需要 append 的元素为 v
+listappend(PyListObject *self, PyObject *v)
+{
+    if (app1(self, v) == 0)
+        Py_RETURN_NONE;
+    return NULL;
+}
+
+static int
+app1(PyListObject *self, PyObject *v)
+{
+  	// PyList_GET_SIZE(self) 展开之后为 ((PyVarObject*)(self))->ob_size
+    Py_ssize_t n = PyList_GET_SIZE(self);
+
+    assert (v != NULL);
+  	// 如果元素的个数已经等于允许的最大的元素个数 就报错
+    if (n == PY_SSIZE_T_MAX) {
+        PyErr_SetString(PyExc_OverflowError,
+            "cannot add more objects to list");
+        return -1;
+    }
+		// 下面的函数 list_resize 会保存 ob_item 指向的位置能够容纳最少 n+1 个元素（PyObject *）
+  	// 如果容量不够就会进行扩容操作
+    if (list_resize(self, n+1) == -1)
+        return -1;
+		
+  	// 将对象 v 的 reference count 加一 因为列表当中使用了一次这个对象 所以对象的引用计数需要进行加一操作
+    Py_INCREF(v);
+    PyList_SET_ITEM(self, n, v); // 宏展开之后 ((PyListObject *)(op))->ob_item[i] = v
+    return 0;
+}
+```
 
