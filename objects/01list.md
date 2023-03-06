@@ -239,5 +239,5 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
 
 上面的扩容机制大致如下所示：
 $$
-new\_size \approx size \cdot (size + 1)^{\frac{1}{8}}
+newsize \approx size \cdot (size + 1)^{\frac{1}{8}}
 $$
