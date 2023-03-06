@@ -70,7 +70,8 @@ static PyListObject *free_list[PyList_MAXFREELIST];
 static int numfree = 0;
 ```
 
-
+- free_list，保存被释放的内存空间的首地址。
+- numfree，目前 free_list 当中有多少个地址是可以被使用的，事实上是 free_list 前 numfree 个首地址是可以被使用的。
 
 ```c
 PyObject *
