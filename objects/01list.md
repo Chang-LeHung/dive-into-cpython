@@ -105,6 +105,7 @@ PyList_New(Py_ssize_t size)
         op->ob_item = NULL;
     else {
         op->ob_item = (PyObject **) PyMem_MALLOC(nbytes);
+      // 如果申请内存空间失败 则报错
         if (op->ob_item == NULL) {
             Py_DECREF(op);
             return PyErr_NoMemory();
@@ -123,7 +124,7 @@ PyList_New(Py_ssize_t size)
 }
 ```
 
-创建链表的字节码为，我们可以在 ceval.c 当中找到对应的字节码对应的执行步骤：
+在 cpython 当中，创建链表的字节码为 BUILD_LIST，我们可以在文件 ceval.c 当中找到对应的字节码对应的执行步骤：
 
 ```c
 TARGET(BUILD_LIST) {
@@ -138,4 +139,6 @@ TARGET(BUILD_LIST) {
     DISPATCH();
 }
 ```
+
+从上面 BUILD_LIST 字节码对应的解释步骤可以知道，在解释执行字节码 BUILD_LIST 的时候确实调用了函数 PyList_New 创建一个新的链表。
 
