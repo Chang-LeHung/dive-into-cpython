@@ -44,3 +44,14 @@ typedef struct _object {
 
 ![](../images/01-list.png)
 
+现在来解释一下上面的各个字段的含义：
+
+- ob_refcnt，表示对象的引用记数的个数，这个对于垃圾回收很有用处，后面我们分析虚拟机中垃圾回收部分在深入分析。
+- ob_type，表示这个对象的数据类型是什么，在 python 当中有时候需要对数据的数据类型进行判断比如 isinstance, type 这两个关键字就会使用到这个字段。
+- ob_size，这个字段表示这个列表当中有多少个元素。
+- ob_item，这是一个指针，指向真正保存 python 对象数据的地址，大致的内存他们之间大致的内存布局如下所示：
+
+![](../images/02-list.png)
+
+- allocated，这个表示在进行内存分配的时候，一共分配了多少个 (PyObject *) ，真实分配的内存空间为 `allocated * sizeof(PyObject *)`。
+
