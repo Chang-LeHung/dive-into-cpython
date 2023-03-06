@@ -59,3 +59,58 @@ typedef struct _object {
 
 ### 创建链表
 
+首先需要了解的是在 python 虚拟机内部为列表创建了一个数组，所有的创建的被释放的内存空间，并不会直接进行释放而是会将这些内存空间的首地址保存到这个数组当中，好让下一次申请创建新的列表的时候不需要再申请内存空间，而是直接将之前需要释放的内存直接进行复用即可。
+
+```c
+/* Empty list reuse scheme to save calls to malloc and free */
+#ifndef PyList_MAXFREELIST
+#define PyList_MAXFREELIST 80
+#endif
+static PyListObject *free_list[PyList_MAXFREELIST];
+static int numfree = 0;
+```
+
+
+
+```c
+PyObject *
+PyList_New(Py_ssize_t size)
+{
+    PyListObject *op;
+    size_t nbytes;
+
+    if (size < 0) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+    /* Check for overflow without an actual overflow,
+     *  which can cause compiler to optimise out */
+    if ((size_t)size > PY_SIZE_MAX / sizeof(PyObject *))
+        return PyErr_NoMemory();
+    nbytes = size * sizeof(PyObject *);
+    if (numfree) {
+        numfree--;
+        op = free_list[numfree];
+        _Py_NewReference((PyObject *)op);
+    } else {
+        op = PyObject_GC_New(PyListObject, &PyList_Type);
+        if (op == NULL)
+            return NULL;
+    }
+    if (size <= 0)
+        op->ob_item = NULL;
+    else {
+        op->ob_item = (PyObject **) PyMem_MALLOC(nbytes);
+        if (op->ob_item == NULL) {
+            Py_DECREF(op);
+            return PyErr_NoMemory();
+        }
+        memset(op->ob_item, 0, nbytes);
+    }
+    Py_SIZE(op) = size;
+    op->allocated = size;
+    _PyObject_GC_TRACK(op);
+    return (PyObject *) op;
+}
+```
+
