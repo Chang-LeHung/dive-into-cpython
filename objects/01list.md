@@ -159,22 +159,22 @@ listappend(PyListObject *self, PyObject *v)
 static int
 app1(PyListObject *self, PyObject *v)
 {
-  	// PyList_GET_SIZE(self) 展开之后为 ((PyVarObject*)(self))->ob_size
+  // PyList_GET_SIZE(self) 展开之后为 ((PyVarObject*)(self))->ob_size
     Py_ssize_t n = PyList_GET_SIZE(self);
 
     assert (v != NULL);
-  	// 如果元素的个数已经等于允许的最大的元素个数 就报错
+  // 如果元素的个数已经等于允许的最大的元素个数 就报错
     if (n == PY_SSIZE_T_MAX) {
         PyErr_SetString(PyExc_OverflowError,
             "cannot add more objects to list");
         return -1;
     }
-		// 下面的函数 list_resize 会保存 ob_item 指向的位置能够容纳最少 n+1 个元素（PyObject *）
-  	// 如果容量不够就会进行扩容操作
+// 下面的函数 list_resize 会保存 ob_item 指向的位置能够容纳最少 n+1 个元素（PyObject *）
+  // 如果容量不够就会进行扩容操作
     if (list_resize(self, n+1) == -1)
         return -1;
 		
-  	// 将对象 v 的 reference count 加一 因为列表当中使用了一次这个对象 所以对象的引用计数需要进行加一操作
+  // 将对象 v 的 reference count 加一 因为列表当中使用了一次这个对象 所以对象的引用计数需要进行加一操作
     Py_INCREF(v);
     PyList_SET_ITEM(self, n, v); // 宏展开之后 ((PyListObject *)(op))->ob_item[i] = v
     return 0;
