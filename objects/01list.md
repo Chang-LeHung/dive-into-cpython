@@ -196,6 +196,7 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
        to accommodate the newsize.  If the newsize falls lower than half
        the allocated size, then proceed with the realloc() to shrink the list.
     */
+  // 如果列表已经分配的元素个数大于需求个数 newsize 的就直接返回不需要进行扩容
     if (allocated >= newsize && newsize >= (allocated >> 1)) {
         assert(self->ob_item != NULL || newsize == 0);
         Py_SIZE(self) = newsize;
@@ -209,6 +210,7 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
      * system realloc().
      * The growth pattern is:  0, 4, 8, 16, 25, 35, 46, 58, 72, 88, ...
      */
+  // 这是核心的数组大小扩容机制 new_allocated 表示新增的数组大小
     new_allocated = (newsize >> 3) + (newsize < 9 ? 3 : 6);
 
     /* check for integer overflow */
@@ -223,6 +225,7 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
         new_allocated = 0;
     items = self->ob_item;
     if (new_allocated <= (PY_SIZE_MAX / sizeof(PyObject *)))
+      	// PyMem_RESIZE 这是一个宏定义 会申请 new_allocated 个数元素并且将原来数组的元素拷贝到新的数组当中
         PyMem_RESIZE(items, PyObject *, new_allocated);
     else
         items = NULL;
@@ -237,7 +240,7 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
 }
 ```
 
-上面的扩容机制大致如下所示：
+在上面的扩容机制下，数组的大小变化大致如下所示：
 $$
 newsize \approx size \cdot (size + 1)^{\frac{1}{8}}
 $$
