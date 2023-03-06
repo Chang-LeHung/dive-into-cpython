@@ -149,6 +149,7 @@ TARGET(BUILD_LIST) {
 ```c
 static PyObject *
 // 这个函数的传入参数是列表本身 self 需要 append 的元素为 v
+  // 也就是将对象 v 加入到列表 self 当中
 listappend(PyListObject *self, PyObject *v)
 {
     if (app1(self, v) == 0)
