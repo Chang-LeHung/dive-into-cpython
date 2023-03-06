@@ -241,3 +241,4 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
 $$
 newsize \approx size \cdot (size + 1)^{\frac{1}{8}}
 $$
+![](../images/03-list.png)
