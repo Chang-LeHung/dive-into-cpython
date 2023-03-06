@@ -55,3 +55,7 @@ typedef struct _object {
 
 - allocated，这个表示在进行内存分配的时候，一共分配了多少个 (PyObject *) ，真实分配的内存空间为 `allocated * sizeof(PyObject *)`。
 
+## 列表操作函数源代码分析
+
+### 创建链表
+
