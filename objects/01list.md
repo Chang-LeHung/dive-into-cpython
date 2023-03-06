@@ -40,3 +40,7 @@ typedef struct _object {
 
 ```
 
+将上面的结构体展开之后，PyListObject 的结构大致如下所示：
+
+![](../images/01-list.png)
+
