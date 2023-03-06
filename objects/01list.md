@@ -182,3 +182,62 @@ app1(PyListObject *self, PyObject *v)
 }
 ```
 
+### 列表的扩容机制
+
+```c
+static int
+list_resize(PyListObject *self, Py_ssize_t newsize)
+{
+    PyObject **items;
+    size_t new_allocated;
+    Py_ssize_t allocated = self->allocated;
+
+    /* Bypass realloc() when a previous overallocation is large enough
+       to accommodate the newsize.  If the newsize falls lower than half
+       the allocated size, then proceed with the realloc() to shrink the list.
+    */
+    if (allocated >= newsize && newsize >= (allocated >> 1)) {
+        assert(self->ob_item != NULL || newsize == 0);
+        Py_SIZE(self) = newsize;
+        return 0;
+    }
+
+    /* This over-allocates proportional to the list size, making room
+     * for additional growth.  The over-allocation is mild, but is
+     * enough to give linear-time amortized behavior over a long
+     * sequence of appends() in the presence of a poorly-performing
+     * system realloc().
+     * The growth pattern is:  0, 4, 8, 16, 25, 35, 46, 58, 72, 88, ...
+     */
+    new_allocated = (newsize >> 3) + (newsize < 9 ? 3 : 6);
+
+    /* check for integer overflow */
+    if (new_allocated > PY_SIZE_MAX - newsize) {
+        PyErr_NoMemory();
+        return -1;
+    } else {
+        new_allocated += newsize;
+    }
+
+    if (newsize == 0)
+        new_allocated = 0;
+    items = self->ob_item;
+    if (new_allocated <= (PY_SIZE_MAX / sizeof(PyObject *)))
+        PyMem_RESIZE(items, PyObject *, new_allocated);
+    else
+        items = NULL;
+    if (items == NULL) {
+        PyErr_NoMemory();
+        return -1;
+    }
+    self->ob_item = items;
+    Py_SIZE(self) = newsize;
+    self->allocated = new_allocated;
+    return 0;
+}
+```
+
+上面的扩容机制大致如下所示：
+$$
+new\_size \approx size \cdot (size + 1)^{\frac{1}{8}}
+$$
