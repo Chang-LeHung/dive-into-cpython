@@ -229,10 +229,12 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
         PyMem_RESIZE(items, PyObject *, new_allocated);
     else
         items = NULL;
+  // 如果没有申请到内存 那么报错
     if (items == NULL) {
         PyErr_NoMemory();
         return -1;
     }
+  // 更新列表当中的元素数据
     self->ob_item = items;
     Py_SIZE(self) = newsize;
     self->allocated = new_allocated;
