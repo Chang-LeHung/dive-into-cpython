@@ -73,6 +73,8 @@ static int numfree = 0;
 - free_list，保存被释放的内存空间的首地址。
 - numfree，目前 free_list 当中有多少个地址是可以被使用的，事实上是 free_list 前 numfree 个首地址是可以被使用的。
 
+创建链表的代码如下所示（为了精简删除了一些代码只保留核心部分）：
+
 ```c
 PyObject *
 PyList_New(Py_ssize_t size)
@@ -80,24 +82,25 @@ PyList_New(Py_ssize_t size)
     PyListObject *op;
     size_t nbytes;
 
-    if (size < 0) {
-        PyErr_BadInternalCall();
-        return NULL;
-    }
     /* Check for overflow without an actual overflow,
      *  which can cause compiler to optimise out */
     if ((size_t)size > PY_SIZE_MAX / sizeof(PyObject *))
         return PyErr_NoMemory();
     nbytes = size * sizeof(PyObject *);
+  // 如果 numfree 不等于 0 那么说明现在 free_list 有之前使用被释放的内存空间直接使用这部分即可
     if (numfree) {
         numfree--;
-        op = free_list[numfree];
-        _Py_NewReference((PyObject *)op);
+        op = free_list[numfree]; // 将对应的首地址返回
+        _Py_NewReference((PyObject *)op); // 这条语句的含义是将 op 这个对象的 reference count 设置成 1
     } else {
+      // 如果没有空闲的内存空间 那么就需要申请内存空间 这个函数也会对对象的 reference count 进行初始化 设置成 1
         op = PyObject_GC_New(PyListObject, &PyList_Type);
         if (op == NULL)
             return NULL;
     }
+  /* 下面是申请列表对象当中的 ob_item 申请内存空间，上面只是给列表本身申请内存空间，但是列表当中有许多元素
+  	保存这些元素也是需要内存空间的 下面便是给这些对象申请内存空间
+  */
     if (size <= 0)
         op->ob_item = NULL;
     else {
@@ -106,12 +109,33 @@ PyList_New(Py_ssize_t size)
             Py_DECREF(op);
             return PyErr_NoMemory();
         }
+      // 对元素进行初始化操作 全部赋值成 0
         memset(op->ob_item, 0, nbytes);
     }
-    Py_SIZE(op) = size;
+  // Py_SIZE 是一个宏
+    Py_SIZE(op) = size; // 这条语句会被展开成 (PyVarObject*)(ob))->ob_size = size
+  // 分配数组的元素个数是 size
     op->allocated = size;
+  // 下面这条语句对于垃圾回收比较重要 主要作用就是将这个列表对象加入到垃圾回收的链表当中
+  // 后面如果这个对象的 reference count 变成 0 或者其他情况 就可以进行垃圾回收了
     _PyObject_GC_TRACK(op);
     return (PyObject *) op;
+}
+```
+
+创建链表的字节码为，我们可以在 ceval.c 当中找到对应的字节码对应的执行步骤：
+
+```c
+TARGET(BUILD_LIST) {
+    PyObject *list =  PyList_New(oparg);
+    if (list == NULL)
+        goto error;
+    while (--oparg >= 0) {
+        PyObject *item = POP();
+        PyList_SET_ITEM(list, oparg, item);
+    }
+    PUSH(list);
+    DISPATCH();
 }
 ```
 
