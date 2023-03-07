@@ -355,3 +355,6 @@ data.remove(1)
 
 从上面的结果我们可以看到的是，我们修改的错误信息正确打印了出来。
 
+![](../images/07-list.png)
+
+![](../images/08-list.png)
