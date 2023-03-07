@@ -383,7 +383,7 @@ listcount(PyListObject *self, PyObject *v)
 
 ### 列表的拷贝函数 copy
 
-这是列表的浅拷贝函数，它只拷贝了真实 python 对象的指针，并没有拷贝真实的 python 对象 ，从下面的代码可以知道列表的拷贝是浅拷贝，当 b 对列表当中的元素进行修改时，列表 a 当中的元素也改变了。
+这是列表的浅拷贝函数，它只拷贝了真实 python 对象的指针，并没有拷贝真实的 python 对象 ，从下面的代码可以知道列表的拷贝是浅拷贝，当 b 对列表当中的元素进行修改时，列表 a 当中的元素也改变了。如果需要进行深拷贝可以使用 copy 模块当中的 deepcopy 函数。
 
 ```python
 >>> a = [1, 2, [3, 4]]
@@ -393,7 +393,7 @@ listcount(PyListObject *self, PyObject *v)
 [1, 2, [3, 5]]
 ```
 
-
+copy 函数对应的源代码（listcopy）如下所示：
 
 ```c
 static PyObject *
@@ -405,6 +405,7 @@ listcopy(PyListObject *self)
 static PyObject *
 list_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh)
 {
+  // Py_SIZE(a) 返回列表 a 当中元素的个数（注意不是数组的长度 allocated）
     PyListObject *np;
     PyObject **src, **dest;
     Py_ssize_t i, len;
@@ -423,8 +424,10 @@ list_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh)
 
     src = a->ob_item + ilow;
     dest = np->ob_item;
+  // 可以看到这里循环拷贝的是指向真实 python 对象的指针 并不是真实的对象
     for (i = 0; i < len; i++) {
         PyObject *v = src[i];
+      // 同样的因为并没有创建新的对象，但是这个对象被新的列表使用到啦 因此他的 reference count 需要进行加一操作 Py_INCREF(v) 的作用：将对象 v 的 reference count 加一
         Py_INCREF(v);
         dest[i] = v;
     }
