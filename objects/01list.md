@@ -247,3 +247,57 @@ $$
 newsize \approx size \cdot (size + 1)^{\frac{1}{8}}
 $$
 ![](../images/03-list.png)
+
+### 列表的插入函数 insert
+
+在列表当中插入一个数据比较简单，只需要将插入位置和其后面的元素往后移动一个位置即可，整个过程如下所示：
+
+![](../images/04-list.png)
+
+在 cpython 当中列表的插入函数的实现如下所示：
+
+```c
+int
+PyList_Insert(PyObject *op, Py_ssize_t where, PyObject *newitem)
+{
+    if (!PyList_Check(op)) {
+        PyErr_BadInternalCall();
+        return -1;
+    }
+    return ins1((PyListObject *)op, where, newitem);
+}
+
+static int
+ins1(PyListObject *self, Py_ssize_t where, PyObject *v)
+{
+    Py_ssize_t i, n = Py_SIZE(self);
+    PyObject **items;
+    if (v == NULL) {
+        PyErr_BadInternalCall();
+        return -1;
+    }
+    if (n == PY_SSIZE_T_MAX) {
+        PyErr_SetString(PyExc_OverflowError,
+            "cannot add more objects to list");
+        return -1;
+    }
+
+    if (list_resize(self, n+1) == -1)
+        return -1;
+
+    if (where < 0) {
+        where += n;
+        if (where < 0)
+            where = 0;
+    }
+    if (where > n)
+        where = n;
+    items = self->ob_item;
+    for (i = n; --i >= where; )
+        items[i+1] = items[i];
+    Py_INCREF(v);
+    items[where] = v;
+    return 0;
+}
+```
+
