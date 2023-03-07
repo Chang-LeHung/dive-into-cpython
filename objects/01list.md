@@ -46,6 +46,8 @@ typedef struct _object {
 
 现在来解释一下上面的各个字段的含义：
 
+- Py_ssize_t，一个整型数据类型。
+
 - ob_refcnt，表示对象的引用记数的个数，这个对于垃圾回收很有用处，后面我们分析虚拟机中垃圾回收部分在深入分析。
 - ob_type，表示这个对象的数据类型是什么，在 python 当中有时候需要对数据的数据类型进行判断比如 isinstance, type 这两个关键字就会使用到这个字段。
 - ob_size，这个字段表示这个列表当中有多少个元素。
@@ -256,14 +258,20 @@ $$
 
 在 cpython 当中列表的插入函数的实现如下所示：
 
+- 参数 op 表示往哪个链表当中插入元素。
+- 参数 where 表示在链表的哪个位置插入元素。
+- 参数 newitem 表示新插入的元素。
+
 ```c
 int
 PyList_Insert(PyObject *op, Py_ssize_t where, PyObject *newitem)
 {
+  // 检查是否是列表类型
     if (!PyList_Check(op)) {
         PyErr_BadInternalCall();
         return -1;
     }
+  // 如果是列表类型则进行插入操作
     return ins1((PyListObject *)op, where, newitem);
 }
 
@@ -276,15 +284,16 @@ ins1(PyListObject *self, Py_ssize_t where, PyObject *v)
         PyErr_BadInternalCall();
         return -1;
     }
+  // 如果列表的元素个数超过限制 则进行报错
     if (n == PY_SSIZE_T_MAX) {
         PyErr_SetString(PyExc_OverflowError,
             "cannot add more objects to list");
         return -1;
     }
-
+  // 确保列表能够容纳 n + 1 个元素
     if (list_resize(self, n+1) == -1)
         return -1;
-
+  // 这里是 python 的一个小 trick 就是下标能够有负数的原理
     if (where < 0) {
         where += n;
         if (where < 0)
@@ -293,9 +302,12 @@ ins1(PyListObject *self, Py_ssize_t where, PyObject *v)
     if (where > n)
         where = n;
     items = self->ob_item;
+  // 从后往前进行元素的拷贝操作，也就是将插入位置及其之后的元素往后移动一个位置
     for (i = n; --i >= where; )
         items[i+1] = items[i];
+  // 因为链表应用的对象，因此对象的 reference count 需要进行加一操作
     Py_INCREF(v);
+  // 在列表当中保存对象 v 
     items[where] = v;
     return 0;
 }
