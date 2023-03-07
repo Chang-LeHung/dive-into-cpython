@@ -355,6 +355,74 @@ data.remove(1)
 
 从上面的结果我们可以看到的是，我们修改的错误信息正确打印了出来。
 
+### 列表的统计函数 count
+
+这个函数的主要作用就是统计列表 self 当中有多少个元素和 v 相等。
+
+```c
+static PyObject *
+listcount(PyListObject *self, PyObject *v)
+{
+    Py_ssize_t count = 0;
+    Py_ssize_t i;
+
+    for (i = 0; i < Py_SIZE(self); i++) {
+        int cmp = PyObject_RichCompareBool(self->ob_item[i], v, Py_EQ);
+      // 如果相等则将 count 进行加一操作
+        if (cmp > 0)
+            count++;
+      // 如果出现错误就返回 NULL
+        else if (cmp < 0)
+            return NULL;
+    }
+  // 将一个 Py_ssize_t 的变量变成 python 当中的对象
+    return PyLong_FromSsize_t(count);
+}
+
+```
+
+### 列表的拷贝函数 copy
+
+```c
+static PyObject *
+listcopy(PyListObject *self)
+{
+    return list_slice(self, 0, Py_SIZE(self));
+}
+
+static PyObject *
+list_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh)
+{
+    PyListObject *np;
+    PyObject **src, **dest;
+    Py_ssize_t i, len;
+    if (ilow < 0)
+        ilow = 0;
+    else if (ilow > Py_SIZE(a))
+        ilow = Py_SIZE(a);
+    if (ihigh < ilow)
+        ihigh = ilow;
+    else if (ihigh > Py_SIZE(a))
+        ihigh = Py_SIZE(a);
+    len = ihigh - ilow;
+    np = (PyListObject *) PyList_New(len);
+    if (np == NULL)
+        return NULL;
+
+    src = a->ob_item + ilow;
+    dest = np->ob_item;
+    for (i = 0; i < len; i++) {
+        PyObject *v = src[i];
+        Py_INCREF(v);
+        dest[i] = v;
+    }
+    return (PyObject *)np;
+}
+```
+
+
+
 ![](../images/07-list.png)
 
 ![](../images/08-list.png)
+
