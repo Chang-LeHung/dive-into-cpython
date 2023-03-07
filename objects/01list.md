@@ -383,6 +383,18 @@ listcount(PyListObject *self, PyObject *v)
 
 ### 列表的拷贝函数 copy
 
+这是列表的浅拷贝函数，它只拷贝了真实 python 对象的指针，并没有拷贝真实的 python 对象 ，从下面的代码可以知道列表的拷贝是浅拷贝，当 b 对列表当中的元素进行修改时，列表 a 当中的元素也改变了。
+
+```python
+>>> a = [1, 2, [3, 4]]
+>>> b = a.copy()
+>>> b[2][1] = 5
+>>> b
+[1, 2, [3, 5]]
+```
+
+
+
 ```c
 static PyObject *
 listcopy(PyListObject *self)
