@@ -435,9 +435,99 @@ list_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh)
 }
 ```
 
-
+下图就是使用 a.copy() 浅拷贝的时候，内存的布局的示意图，可以看到列表指向的对象数组发生了变化，但是数组中元素指向的 python 对象并没有发生变化。
 
 ![](../images/07-list.png)
 
+下面是对列表对象进行深拷贝的时候内存的大致示意图，可以看到数组指向的 python 对象也是不一样的。
+
 ![](../images/08-list.png)
+
+### 列表的清空函数 clear
+
+当我们在使用 list.clear() 的时候会调用下面这个函数。清空列表需要注意的就是将表示列表当中元素个数的 ob_size 字段设置成 0 ，同时将列表当中所有的对象的 reference count 设置进行 -1 操作，这个操作是通过宏 Py_XDECREF 实现的，这个宏还会做另外一件事就是如果这个对象的引用计数变成 0 了，那么就会直接释放他的内存。
+
+```c
+static PyObject *
+listclear(PyListObject *self)
+{
+    list_clear(self);
+    Py_RETURN_NONE;
+}
+
+static int
+list_clear(PyListObject *a)
+{
+    Py_ssize_t i;
+    PyObject **item = a->ob_item;
+    if (item != NULL) {
+        /* Because XDECREF can recursively invoke operations on
+           this list, we make it empty first. */
+        i = Py_SIZE(a);
+        Py_SIZE(a) = 0;
+        a->ob_item = NULL;
+        a->allocated = 0;
+        while (--i >= 0) {
+            Py_XDECREF(item[i]);
+        }
+        PyMem_FREE(item);
+    }
+    /* Never fails; the return value can be ignored.
+       Note that there is no guarantee that the list is actually empty
+       at this point, because XDECREF may have populated it again! */
+    return 0;
+}
+```
+
+### 列表反转函数 reverse
+
+在 python 当中如果我们想要反转类表当中的内容的话，就会使用这个函数 reverse 。
+
+```python
+>>> a = [i for i in range(10)]
+>>> a.reverse()
+>>> a
+[9, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+```
+
+其对应的源程序如下所示：
+
+```c
+static PyObject *
+listreverse(PyListObject *self)
+{
+    if (Py_SIZE(self) > 1)
+        reverse_slice(self->ob_item, self->ob_item + Py_SIZE(self));
+    Py_RETURN_NONE;
+}
+
+static void
+reverse_slice(PyObject **lo, PyObject **hi)
+{
+    assert(lo && hi);
+
+    --hi;
+    while (lo < hi) {
+        PyObject *t = *lo;
+        *lo = *hi;
+        *hi = t;
+        ++lo;
+        --hi;
+    }
+}
+```
+
+上面的源程序还是比较容易理解的，给 reverse_slice 传递的参数就是保存数据的数组的首尾地址，然后不断的将首尾数据进行交换（其实是交换指针指向的地址）。
+
+## 总结
+
+本文介绍了 Python 中列表对象的实现细节，介绍了一些常用函数的实现，包括列表的扩容机制，插入、删除、统计、拷贝、清空和反转等操作的实现方式。
+
+- 列表的扩容机制采用了一种线性时间摊销的方式，使得列表的插入操作具有较好的时间复杂度。
+- 列表的插入、删除和统计操作都是通过操作ob_item 数组实现的，其中插入和删除操作需要移动数组中的元素。
+- 列表的拷贝操作是浅拷贝，需要注意的是进行深拷贝需要使用 copy 模块当中的 deepcopy 函数。
+- 列表清空会将 ob_size 字段设置成 0，同时需要将列表当中的所有对象的 reference count 进行 -1 操作，从而避免内存泄漏。
+- 列表的反转操作可以通过交换 ob_item 数组中前后元素的位置实现。
+
+总之，了解 Python 列表对象的实现细节有助于我们更好地理解 Python 的内部机制，从而编写更高效、更可靠的 Python 代码。
 
