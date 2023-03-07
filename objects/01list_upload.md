@@ -531,3 +531,8 @@ reverse_slice(PyObject **lo, PyObject **hi)
 
 总之，了解 Python 列表对象的实现细节有助于我们更好地理解 Python 的内部机制，从而编写更高效、更可靠的 Python 代码。
 
+---
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
