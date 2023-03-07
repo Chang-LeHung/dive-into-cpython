@@ -313,3 +313,45 @@ ins1(PyListObject *self, Py_ssize_t where, PyObject *v)
 }
 ```
 
+### 列表的删除函数 remove
+
+对于数组 ob_item 来说，删除一个元素就需要将这个元素后面的元素往前移动，因此整个过程如下所示：
+
+![](../images/05-list.png)
+
+```c
+static PyObject *
+listremove(PyListObject *self, PyObject *v)
+{
+    Py_ssize_t i;
+  	// 编译数组 ob_item 查找和对象 v 相等的元素并且将其删除
+    for (i = 0; i < Py_SIZE(self); i++) {
+        int cmp = PyObject_RichCompareBool(self->ob_item[i], v, Py_EQ);
+        if (cmp > 0) {
+            if (list_ass_slice(self, i, i+1,
+                               (PyObject *)NULL) == 0)
+                Py_RETURN_NONE;
+            return NULL;
+        }
+        else if (cmp < 0)
+            return NULL;
+    }
+  	// 如果没有找到这个元素就进行报错处理 在下面有一个例子重新编译 python 解释器 将这个错误内容修改的例子
+    PyErr_SetString(PyExc_ValueError, "list.remove(x): x not in list");
+    return NULL;
+}
+```
+
+执行的 python 程序内容为：
+
+```python
+data = []
+data.remove(1)
+```
+
+下面是整个修改内容和报错结果：
+
+![](../images/06-list.png)
+
+从上面的结果我们可以看到的是，我们修改的错误信息正确打印了出来。
+
