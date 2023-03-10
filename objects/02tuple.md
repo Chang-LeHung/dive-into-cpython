@@ -125,3 +125,17 @@ PyTuple_New(Py_ssize_t size)
 - 如果没有，则进行内存分配，然后将申请的内存空间进行初始化操作。
 - 如果 size == 0，则可以将新分配的元组对象放到 free_list 当中。
 
+### 查看元组的长度
+
+这个功能比较简单，直接只用 cpython 当中的宏 Py_SIZE 即可。他的宏定义为 `\#define Py_SIZE(ob)             (((PyVarObject*)(ob))->ob_size)` 。
+
+```c
+static Py_ssize_t
+tuplelength(PyTupleObject *a)
+{
+    return Py_SIZE(a);
+}
+```
+
+
+
