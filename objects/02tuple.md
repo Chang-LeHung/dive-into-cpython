@@ -62,6 +62,8 @@ static int numfree[PyTuple_MAXSAVESIZE];
 - free_list，保存指针——指向被释放的元组。
 - numfree，对应的下标表示元组当中元素的个数，numfree[i] 表示有 i 个元素的元组的个数。
 
+下面是新建 tuple 对象的源程序：
+
 ```c
 PyObject *
 PyTuple_New(Py_ssize_t size)
@@ -73,48 +75,53 @@ PyTuple_New(Py_ssize_t size)
         return NULL;
     }
 #if PyTuple_MAXSAVESIZE > 0
-    if (size == 0 && free_list[0]) {
+    // 如果申请一个空的元组对象 当前的 free_list 当中是否存在空元组对象 如果存在则直接返回
+    if (size == 0 && free_list[0]) k
         op = free_list[0];
         Py_INCREF(op);
         return (PyObject *) op;
     }
+    // 如果元组的对象元素个数小于 20 而且对应的 free_list 当中还有余下的元组对象 则不需要进行内存申请直接返回
     if (size < PyTuple_MAXSAVESIZE && (op = free_list[size]) != NULL) {
         free_list[size] = (PyTupleObject *) op->ob_item[0];
         numfree[size]--;
-#ifdef COUNT_ALLOCS
-        fast_tuple_allocs++;
-#endif
         /* Inline PyObject_InitVar */
-#ifdef Py_TRACE_REFS
-        Py_SIZE(op) = size;
-        Py_TYPE(op) = &PyTuple_Type;
-#endif
-        _Py_NewReference((PyObject *)op);
+        _Py_NewReference((PyObject *)op); // _Py_NewReference 这个宏是将对象 op 的引用计数设置成 1
     }
     else
 #endif
     {
         /* Check for overflow */
+        // 如果元组的元素个数大或者等于 20 或者 当前 free_list 当中没有没有剩余的对象则需要进行内存申请
         if ((size_t)size > ((size_t)PY_SSIZE_T_MAX - sizeof(PyTupleObject) -
                     sizeof(PyObject *)) / sizeof(PyObject *)) {
+          	// 如果元组长度大于某个值直接报内存错误
             return PyErr_NoMemory();
         }
+        // 申请元组大小的内存空间
         op = PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, size);
         if (op == NULL)
             return NULL;
     }
+		// 初始化内存空间
     for (i=0; i < size; i++)
         op->ob_item[i] = NULL;
 #if PyTuple_MAXSAVESIZE > 0
+    // 因为 size == 0 的元组不会进行修改操作 因此可以直接将这个申请到的对象放到 free_list 当中以备后续使用
     if (size == 0) {
         free_list[0] = op;
         ++numfree[0];
         Py_INCREF(op);          /* extra INCREF so that this is never freed */
     }
 #endif
-    _PyObject_GC_TRACK(op);
+    _PyObject_GC_TRACK(op); // _PyObject_GC_TRACK 这个宏是将对象 op 将入到垃圾回收队列当中
     return (PyObject *) op;
 }
-
 ```
+
+新建元组对象的流程如下所示：
+
+- 查看 free_list 当中是否已经存在空闲的元组，如果有则直接进行返回。
+- 如果没有，则进行内存分配，然后将申请的内存空间进行初始化操作。
+- 如果 size == 0，则可以将新分配的元组对象放到 free_list 当中。
 
