@@ -46,3 +46,75 @@ typedef struct _object {
 
 需要注意的是元组的数组大小是不能够进行更改的，这一点和 list 不一样，我们可以注意到在 list 的数据结构当中还有一个 allocated 字段，但是在元组当中是没有的，这主要是因为元组的数组大小是固定的，而列表的数组大小是可以更改的。
 
+## 元组操作函数源码剖析
+
+### 创建元组
+
+首先我们需要了解一下在 cpython 内部关于元组内存分配的问题，首先和 list 一样，在 cpython 当中对于分配的好的元组进行释放的时候，并不会直接进行释放，而是会先保存下来，当下次又有元组申请内存的时候，直接将这块内存进行返回即可。
+
+在 cpython 内部会进行缓存的元组大小为 20，如果元组的长度为 0 - 19 那么在申请分配内存之后释放并不会直接释放，而是将其先保存下来，下次有需求的时候直接分配，而不需要申请。在 cpython 内部，相关的定义如下所示：
+
+```c
+static PyTupleObject *free_list[PyTuple_MAXSAVESIZE];
+static int numfree[PyTuple_MAXSAVESIZE];
+```
+
+- free_list，保存指针——指向被释放的元组。
+- numfree，对应的下标表示元组当中元素的个数，numfree[i] 表示有 i 个元素的元组的个数。
+
+```c
+PyObject *
+PyTuple_New(Py_ssize_t size)
+{
+    PyTupleObject *op;
+    Py_ssize_t i;
+    if (size < 0) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+#if PyTuple_MAXSAVESIZE > 0
+    if (size == 0 && free_list[0]) {
+        op = free_list[0];
+        Py_INCREF(op);
+        return (PyObject *) op;
+    }
+    if (size < PyTuple_MAXSAVESIZE && (op = free_list[size]) != NULL) {
+        free_list[size] = (PyTupleObject *) op->ob_item[0];
+        numfree[size]--;
+#ifdef COUNT_ALLOCS
+        fast_tuple_allocs++;
+#endif
+        /* Inline PyObject_InitVar */
+#ifdef Py_TRACE_REFS
+        Py_SIZE(op) = size;
+        Py_TYPE(op) = &PyTuple_Type;
+#endif
+        _Py_NewReference((PyObject *)op);
+    }
+    else
+#endif
+    {
+        /* Check for overflow */
+        if ((size_t)size > ((size_t)PY_SSIZE_T_MAX - sizeof(PyTupleObject) -
+                    sizeof(PyObject *)) / sizeof(PyObject *)) {
+            return PyErr_NoMemory();
+        }
+        op = PyObject_GC_NewVar(PyTupleObject, &PyTuple_Type, size);
+        if (op == NULL)
+            return NULL;
+    }
+    for (i=0; i < size; i++)
+        op->ob_item[i] = NULL;
+#if PyTuple_MAXSAVESIZE > 0
+    if (size == 0) {
+        free_list[0] = op;
+        ++numfree[0];
+        Py_INCREF(op);          /* extra INCREF so that this is never freed */
+    }
+#endif
+    _PyObject_GC_TRACK(op);
+    return (PyObject *) op;
+}
+
+```
+
