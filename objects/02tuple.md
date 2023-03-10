@@ -127,7 +127,7 @@ PyTuple_New(Py_ssize_t size)
 
 ### 查看元组的长度
 
-这个功能比较简单，直接只用 cpython 当中的宏 Py_SIZE 即可。他的宏定义为 `\#define Py_SIZE(ob)             (((PyVarObject*)(ob))->ob_size)` 。
+这个功能比较简单，直接只用 cpython 当中的宏 Py_SIZE 即可。他的宏定义为 \#define Py_SIZE(ob) (((PyVarObject*)(ob))->ob_size)。
 
 ```c
 static Py_ssize_t
@@ -137,5 +137,109 @@ tuplelength(PyTupleObject *a)
 }
 ```
 
+### 元组当中是否包含数据
 
+这个其实和 list 一样，就是遍历元组当中的数据，然后进行比较即可。
 
+```c
+static int
+tuplecontains(PyTupleObject *a, PyObject *el)
+{
+    Py_ssize_t i;
+    int cmp;
+
+    for (i = 0, cmp = 0 ; cmp == 0 && i < Py_SIZE(a); ++i)
+        cmp = PyObject_RichCompareBool(el, PyTuple_GET_ITEM(a, i),
+                                           Py_EQ);
+    return cmp;
+}
+```
+
+### 获取和设置元组中的数据
+
+这两个方法也比较简单，首先检查数据类型是不是元组类型，然后判断是否越界，之后就返回数据，或者设置对应的数据。
+
+这里在设置数据数据的时候需要注意一点的是，当设置新的数据的时候，原来的 python 对象引用计数需要减去一，同理如果设置没有成功的话传入的新的数据的引用计数也需要减去一。
+
+```c
+PyObject *
+PyTuple_GetItem(PyObject *op, Py_ssize_t i)
+{
+    if (!PyTuple_Check(op)) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+    if (i < 0 || i >= Py_SIZE(op)) {
+        PyErr_SetString(PyExc_IndexError, "tuple index out of range");
+        return NULL;
+    }
+    return ((PyTupleObject *)op) -> ob_item[i];
+}
+
+int
+PyTuple_SetItem(PyObject *op, Py_ssize_t i, PyObject *newitem)
+{
+    PyObject *olditem;
+    PyObject **p;
+    if (!PyTuple_Check(op) || op->ob_refcnt != 1) {
+        Py_XDECREF(newitem);
+        PyErr_BadInternalCall();
+        return -1;
+    }
+    if (i < 0 || i >= Py_SIZE(op)) {
+        Py_XDECREF(newitem);
+        PyErr_SetString(PyExc_IndexError,
+                        "tuple assignment index out of range");
+        return -1;
+    }
+    p = ((PyTupleObject *)op) -> ob_item + i;
+    olditem = *p;
+    *p = newitem;
+    Py_XDECREF(olditem);
+    return 0;
+}
+```
+
+### 释放元组内存空间
+
+当我们在进行垃圾回收的时候，判定一个对象的引用计数等于 0 的时候就需要释放这块内存空间（相当于析构函数），下面就是释放 tuple 内存空间的函数。
+
+```c
+static void
+tupledealloc(PyTupleObject *op)
+{
+    Py_ssize_t i;
+    Py_ssize_t len =  Py_SIZE(op);
+    PyObject_GC_UnTrack(op); // PyObject_GC_UnTrack 将对象从垃圾回收队列当中移除
+    Py_TRASHCAN_SAFE_BEGIN(op) 
+    if (len > 0) {
+        i = len;
+        while (--i >= 0)
+            // 将这个元组指向的对象的引用计数减去一
+            Py_XDECREF(op->ob_item[i]);
+#if PyTuple_MAXSAVESIZE > 0
+        // 如果这个元组对象满足加入 free_list  的条件，则将这个元组对象加入到 free_list 当中
+        if (len < PyTuple_MAXSAVESIZE &&
+            numfree[len] < PyTuple_MAXFREELIST &&
+            Py_TYPE(op) == &PyTuple_Type)
+        {
+            op->ob_item[0] = (PyObject *) free_list[len];
+            numfree[len]++;
+            free_list[len] = op;
+            goto done; /* return */
+        }
+#endif
+    }
+    Py_TYPE(op)->tp_free((PyObject *)op);
+done:
+    Py_TRASHCAN_SAFE_END(op)
+}
+```
+
+将元组的内存空间回收的时候，主要有以下几个步骤：
+
+- 将元组对象从垃圾回收链表当中移除。
+- 将元组指向的所有对象的引用计数减一。
+- 判断元组是否满足保存到 free_list 当中的条件，如果满足就将他加入到 free_list 当中去，否则回收这块内存。加入到 free_list 当中整个元组当中 ob_item 指向变化如下所示
+
+![](../images/11-tuple.png)
