@@ -1,17 +1,16 @@
 
-
 import re
 import sys
 
-if len(sys.argv) != 2:
-    print("please pass build directory as a argument")
-    print("python command_extractor build_dir")
+if len(sys.argv) != 3:
+    print("please pass build directory as a argument & path to compile log filename")
+    print("python command_extractor build_dir compile_log.log")
     sys.exit(0)
 
 
 sys.stdout = open("compile_commands.json", "w+")
 
-with open("makeout", 'r+') as fp:
+with open(sys.argv[2], 'r+') as fp:
     text = fp.read()
 compile_commands = re.findall("(gcc.+?)\n", text)
 compile_commands = [cmd for cmd in compile_commands if '.c' in cmd]
