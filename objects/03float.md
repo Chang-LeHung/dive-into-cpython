@@ -35,31 +35,34 @@ static PyFloatObject *free_list = NULL;
 
 在 cpython 内部做多会缓存 100 个 float 对象的内存空间，如果超过 100 就会直接释放内存了，这里需要注意一点的是只用一个指针就可以将所有的 float 对象缓存起来，这一点是如何实现的。
 
+这是使用在对象 PyFloatObject 当中的 struct _typeobject *ob_type; 这个字段实现的，用这个字段指向下一个 float 对象的内存空间，因为在 free_list 当中的数据并没有使用，因此可以利用这个特点节省一些内存空间。下面则是创建 float 对象的具体过程：
+
 ```c
 PyObject *
 PyFloat_FromDouble(double fval)
 {
+    // 首先查看 free_list 当中是否有空闲的 float 对象
     PyFloatObject *op = free_list;
     if (op != NULL) {
+        // 如果有 那么就将让 free_list 指向 free_list 当中的下一个 float 对象 并且将对应的个数减 1
         free_list = (PyFloatObject *) Py_TYPE(op);
         numfree--;
     } else {
+      	// 否则的话就需要申请内存空间
         op = (PyFloatObject*) PyObject_MALLOC(sizeof(PyFloatObject));
         if (!op)
             return PyErr_NoMemory();
     }
     /* Inline PyObject_New */
-    (void)PyObject_INIT(op, &PyFloat_Type);
+    (void)PyObject_INIT(op, &PyFloat_Type); // PyObject_INIT 这个宏的主要作用是将对象的引用计数设置成 1
     op->ob_fval = fval;
     return (PyObject *) op;
 }
 ```
 
-
-
 ### 加法
 
-下面是在 cpython 当中浮点数的加法具体实现。
+下面是在 cpython 当中浮点数的加法具体实现，整个过程比较简单就是得到新的值，并且创建一个新的 PyFloatObject 对象，并且将这个对象返回。
 
 ```c
 static PyObject *
@@ -73,38 +76,97 @@ float_add(PyObject *v, PyObject *w)
 }
 ```
 
+### 减法
 
+同理减法也是一样的。
 
-```python
-import dis
-
-def float_add():
-  a = 1.2
-  b = 2.4
-  c = a + b
-
-if __name__ == '__main__':
-  dis.dis(float_add)
+```c
+static PyObject *
+float_sub(PyObject *v, PyObject *w)
+{
+    double a,b;
+    CONVERT_TO_DOUBLE(v, a);
+    CONVERT_TO_DOUBLE(w, b);
+    a = a - b;
+    return PyFloat_FromDouble(a);
+}
 ```
 
-```bash
-  4           0 LOAD_CONST               1 (1.2)
-              3 STORE_FAST               0 (a)
+### 乘法
 
-  5           6 LOAD_CONST               2 (2.4)
-              9 STORE_FAST               1 (b)
-
-  6          12 LOAD_FAST                0 (a)
-             15 LOAD_FAST                1 (b)
-             18 BINARY_ADD
-             19 STORE_FAST               2 (c)
-             22 LOAD_CONST               0 (None)
-             25 RETURN_VALUE
 ```
+static PyObject *
+float_mul(PyObject *v, PyObject *w)
+{
+    double a,b;
+    CONVERT_TO_DOUBLE(v, a);
+    CONVERT_TO_DOUBLE(w, b);
+    PyFPE_START_PROTECT("multiply", return 0)
+    a = a * b;
+    PyFPE_END_PROTECT(a)
+    return PyFloat_FromDouble(a);
+}
+```
+
+### 除法
+
+```c
+static PyObject *
+float_div(PyObject *v, PyObject *w)
+{
+    double a,b;
+    CONVERT_TO_DOUBLE(v, a);
+    CONVERT_TO_DOUBLE(w, b);
+    if (b == 0.0) {
+        PyErr_SetString(PyExc_ZeroDivisionError,
+                        "float division by zero");
+        return NULL;
+    }
+    a = a / b;
+    return PyFloat_FromDouble(a);
+}
+```
+
+### 取反
+
+这里加入了一行输出语句，这个是为了后面方便我们进行测试的。
+
+```c
+static PyObject *
+float_neg(PyFloatObject *v)
+{
+    printf("%.2lf 正在进行取反运算\n", v->ob_fval);
+    return PyFloat_FromDouble(-v->ob_fval);
+}
+```
+
+### 求绝对值
+
+```c
+static PyObject *
+float_abs(PyFloatObject *v)
+{
+    printf("%.2lf 正在进行取 abs 运算\n", v->ob_fval);
+    return PyFloat_FromDouble(fabs(v->ob_fval));
+}
+```
+
+### 求 bool 值
+
+```c
+static int
+float_bool(PyFloatObject *v)
+{
+    printf("%.2lf 正在进行取 bool 运算\n", v->ob_fval);
+    return v->ob_fval != 0.0;
+}
+```
+
+下图是我们对于 cpython 对程序的修改！
 
 ![](../images/14-float.png)
 
-
+下面是修改之后我们再次对浮点数进行操作的时候的输出，可以看到的是输出了我们在上面的代码当中加入的语句。
 
 ![](../images/13-float.png)
 
