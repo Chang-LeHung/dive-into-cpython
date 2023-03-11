@@ -170,3 +170,15 @@ float_bool(PyFloatObject *v)
 
 ![](../images/13-float.png)
 
+## 总结
+
+在本篇文章当总主要介绍了一些 float 类型在 cpython 内部是如何实现的以及和他相关的加减乘除方法是如何实现的，以及和部分和关键字有关的函数实现。本篇文章主要是讨论 float 数据类型本身，不涉及其他的东西，其实关于类型还有非常大一块，就是 cpython 内部对象系统是如何实现的，这一点在后面深入讨论对象系统的时候再进行深入分析，在回头来看 float 类型会有更加深刻的理解。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
