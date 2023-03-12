@@ -26,7 +26,7 @@ typedef struct _object {
 
 上面的数据结构用图的方式表示出来如下图所示：
 
-![15-int](../images/15-int.png)
+![15-int](../images/22-int.png)
 
 - ob_refcnt，表示对象的引用记数的个数，这个对于垃圾回收很有用处，后面我们分析虚拟机中垃圾回收部分在深入分析。
 - ob_type，表示这个对象的数据类型是什么，在 python 当中有时候需要对数据的数据类型进行判断比如 isinstance, type 这两个关键字就会使用到这个字段。
