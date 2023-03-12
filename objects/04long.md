@@ -33,11 +33,22 @@ typedef struct _object {
 - ob_size，这个字段表示这个整型对象数组 ob_digit 当中一共有多少个元素。
 - digit 类型其实就是 uint32_t 类型的一个 宏定义，表示 32 位的整型数据。
 
+## 深入分析 PyLongObject 字段的语意
 
+首先我们知道在 python 当中的整数是不会溢出的，这正是 PyLongObject 使用数组的原因。在 cpython 内部的实现当中，整数有 0 、正数、负数，对于这一点在 cpython 当中有以下几个规定：
 
+- ob_size，保存的是数组的长度，ob_size 大于 0 时保存的是正数，当 ob_size 小于 0 时保存的是负数。
+- ob_digit，保存的是整数的绝对值。在前面我们谈到了，ob_digit 是一个 32 位的数据，但是在 cpython 内部只会使用其中的前 30 位，这只为了避免溢出的问题。
 
+我们下面使用几个例子来深入理解一下上面的规则：
 
+![15-int](../images/16-int.png)
 
+![15-int](../images/17-int.png)
+
+![15-int](../images/18-int.png)
+
+![15-int](../images/19-int.png)
 
 
 
@@ -95,5 +106,30 @@ PyLong_FromLong(long ival)
     return (PyObject *)v;
 }
 
+```
+
+```c
+PyLongObject *
+_PyLong_New(Py_ssize_t size)
+{
+    PyLongObject *result;
+    /* Number of bytes needed is: offsetof(PyLongObject, ob_digit) +
+       sizeof(digit)*size.  Previous incarnations of this code used
+       sizeof(PyVarObject) instead of the offsetof, but this risks being
+       incorrect in the presence of padding between the PyVarObject header
+       and the digits. */
+    if (size > (Py_ssize_t)MAX_LONG_DIGITS) {
+        PyErr_SetString(PyExc_OverflowError,
+                        "too many digits in integer");
+        return NULL;
+    }
+    result = PyObject_MALLOC(offsetof(PyLongObject, ob_digit) +
+                             size*sizeof(digit));
+    if (!result) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    return (PyLongObject*)PyObject_INIT_VAR(result, &PyLong_Type, size);
+}
 ```
 
