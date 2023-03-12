@@ -69,67 +69,133 @@ $$
 
 ## 小整数池
 
-
-
-
+为了避免频繁的创建一些常用的整数，加快程序执行的速度，我们可以将一些常用的整数先缓存起来，如果需要的话就直接将这个数据返回即可。在 cpython 当中相关的代码如下所示：（小整数池当中缓存数据的区间为[-5, 256]）
 
 ```c
-PyObject *
-PyLong_FromLong(long ival)
-{
-    PyLongObject *v;
-    unsigned long abs_ival;
-    unsigned long t;  /* unsigned so >> doesn't propagate sign bit */
-    int ndigits = 0;
-    int sign;
+#define NSMALLPOSINTS           257
+#define NSMALLNEGINTS           5
 
-    CHECK_SMALL_INT(ival);
-
-    if (ival < 0) {
-        /* negate: can't write this as abs_ival = -ival since that
-           invokes undefined behaviour when ival is LONG_MIN */
-        abs_ival = 0U-(unsigned long)ival;
-        sign = -1;
-    }
-    else {
-        abs_ival = (unsigned long)ival;
-        sign = ival == 0 ? 0 : 1;
-    }
-
-    /* Fast path for single-digit ints */
-    if (!(abs_ival >> PyLong_SHIFT)) {
-        v = _PyLong_New(1);
-        if (v) {
-            Py_SIZE(v) = sign;
-            v->ob_digit[0] = Py_SAFE_DOWNCAST(
-                abs_ival, unsigned long, digit);
-        }
-        return (PyObject*)v;
-    }
-
-    /* Larger numbers: loop to determine number of digits */
-    t = abs_ival;
-    while (t) {
-        ++ndigits;
-        t >>= PyLong_SHIFT;
-    }
-    v = _PyLong_New(ndigits);
-    if (v != NULL) {
-        digit *p = v->ob_digit;
-        Py_SIZE(v) = ndigits*sign;
-        t = abs_ival;
-        while (t) {
-            *p++ = Py_SAFE_DOWNCAST(
-                t & PyLong_MASK, unsigned long, digit);
-            t >>= PyLong_SHIFT;
-        }
-    }
-    return (PyObject *)v;
-}
-
+static PyLongObject small_ints[NSMALLNEGINTS + NSMALLPOSINTS];
 ```
 
+![15-int](../images/20-int.png)
+
+我们使用下面的代码进行测试，看是否使用了小整数池当中的数据，如果使用的话，对于使用小整数池当中的数据，他们的 id() 返回值是一样的，id 这个内嵌函数返回的是 python 对象的内存地址。
+
+```python
+>>> a = 1
+>>> b = 2
+>>> c = 1
+>>> id(a), id(c)
+(4343136496, 4343136496)
+>>> a = -6
+>>> c = -6
+>>> id(a), id(c)
+(4346020624, 4346021072)
+>>> a = 257
+>>> b = 257
+>>> id(a), id(c)
+(4346021104, 4346021072)
+>>>
+```
+
+从上面的结果我们可以看到的是，对于区间[-5, 256]当中的值，id 的返回值确实是一样的，不在这个区间之内的返回值就是不一样的。
+
+我们还可以这个特性实现一个小的 trick，就是求一个 PyLongObject 对象所占的内存空间大小，因为我们可以使用 -5 和 256 这两个数据的内存首地址，然后将这个地址相减就可以得到 261 个 PyLongObject 所占的内存空间大小（注意虽然小整数池当中一共有 262 个数据，但是最后一个数据是内存首地址，并不是尾地址，因此只有 261 个数据），这样我们就可以求一个 PyLongObject 对象的内存大小。
+
+```python
+>>> a = -5
+>>> b = 256
+>>> (id(b) - id(a)) / 261
+32.0
+>>>
+```
+
+从上面的输出结果我们可以看到一个 PyLongObject 对象占 32 个字节。我们可以使用下面的 C 程序查看一个 PyLongObject 真实所占的内存空间大小。
+
 ```c
+#include "Python.h"
+#include <stdio.h>
+
+int main()
+{
+  printf("%ld\n", sizeof(PyLongObject));
+  return 0;
+}
+```
+
+上面的程序的输出结果如下所示：
+
+![15-int](../images/21-int.png)
+
+上面两个结果是相等的，因此也验证了我们的想法。
+
+从小整数池当中获取数据的核心代码如下所示：
+
+```c
+static PyObject *
+get_small_int(sdigit ival)
+{
+    PyObject *v;
+    assert(-NSMALLNEGINTS <= ival && ival < NSMALLPOSINTS);
+    v = (PyObject *)&small_ints[ival + NSMALLNEGINTS];
+    Py_INCREF(v);
+    return v;
+}
+```
+
+## 整数的加法实现
+
+关于 PyLongObject 的操作有很多，我们看一下加法的实现，见微知著，剩下的其他的方法我们就不介绍了，大家感兴趣可以去看具体的源代码。
+
+如果你了解过大整数加法就能够知道，大整数加法的具体实现过程了，在 cpython 内部的实现方式其实也是一样的，就是不断的进行加法操作然后进行进位操作。
+
+```c
+#define Py_ABS(x) ((x) < 0 ? -(x) : (x)) // 返回 x 的绝对值
+#define PyLong_BASE	((digit)1 << PyLong_SHIFT)
+#define PyLong_MASK	((digit)(PyLong_BASE - 1))
+
+
+static PyLongObject *
+x_add(PyLongObject *a, PyLongObject *b)
+{
+    // 首先获得两个整型数据的 size 
+    Py_ssize_t size_a = Py_ABS(Py_SIZE(a)), size_b = Py_ABS(Py_SIZE(b));
+    PyLongObject *z;
+    Py_ssize_t i;
+    digit carry = 0;
+    // 确保 a 保存的数据 size 是更大的
+    /* Ensure a is the larger of the two: */
+    if (size_a < size_b) {
+        { PyLongObject *temp = a; a = b; b = temp; }
+        { Py_ssize_t size_temp = size_a;
+            size_a = size_b;
+            size_b = size_temp; }
+    }
+    // 创建一个新的 PyLongObject 对象，而且数组的长度是 size_a + 1
+    z = _PyLong_New(size_a+1);
+    if (z == NULL)
+        return NULL;
+    // 下面就是整个加法操作的核心
+    for (i = 0; i < size_b; ++i) {
+        carry += a->ob_digit[i] + b->ob_digit[i];
+        // 将低 30 位的数据保存下来
+        z->ob_digit[i] = carry & PyLong_MASK;
+        // 将 carry 右移 30 位，如果上面的加法有进位的话 刚好可以在下一次加法当中使用（注意上面的 carry）
+        // 使用的是 += 而不是 =
+        carry >>= PyLong_SHIFT; // PyLong_SHIFT = 30
+    }
+    // 将剩下的长度保存 （因为 a 的 size 是比 b 大的）
+    for (; i < size_a; ++i) {
+        carry += a->ob_digit[i];
+        z->ob_digit[i] = carry & PyLong_MASK;
+        carry >>= PyLong_SHIFT;
+    }
+    // 最后保存高位的进位
+    z->ob_digit[i] = carry;
+    return long_normalize(z); // long_normalize 这个函数的主要功能是保证 ob_size 保存的是真正的数据的长度 因为可以是一个正数加上一个负数 size 还变小了
+}
+
 PyLongObject *
 _PyLong_New(Py_ssize_t size)
 {
@@ -144,13 +210,48 @@ _PyLong_New(Py_ssize_t size)
                         "too many digits in integer");
         return NULL;
     }
+    // offsetof 会调用 gcc 的一个内嵌函数 __builtin_offsetof 
+    // offsetof(PyLongObject, ob_digit)  这个功能是得到 PyLongObject 对象 字段 ob_digit 之前的所有字段所占的内存空间的大小
     result = PyObject_MALLOC(offsetof(PyLongObject, ob_digit) +
                              size*sizeof(digit));
     if (!result) {
         PyErr_NoMemory();
         return NULL;
     }
+    // 将对象的 result 的引用计数设置成 1
     return (PyLongObject*)PyObject_INIT_VAR(result, &PyLong_Type, size);
 }
+
+
+static PyLongObject *
+long_normalize(PyLongObject *v)
+{
+    Py_ssize_t j = Py_ABS(Py_SIZE(v));
+    Py_ssize_t i = j;
+
+    while (i > 0 && v->ob_digit[i-1] == 0)
+        --i;
+    if (i != j)
+        Py_SIZE(v) = (Py_SIZE(v) < 0) ? -(i) : i;
+    return v;
+}
 ```
+
+## 总结
+
+在本篇文章当中主要给大家介绍了 cpython 内部是如何实现整型数据 int 的，分析了 int 类型的表示方式和设计。int 内部使用 digit 来表示 32 位的整型数据，同时为了避免溢出的问题，只会使用其中的前 30 位。在 cpython 内部的实现当中，整数有 0 、正数、负数，对于这一点有以下几个规定：
+
+- ob_size，保存的是数组的长度，ob_size 大于 0 时保存的是正数，当 ob_size 小于 0 时保存的是负数。
+- ob_digit，保存的是整数的绝对值。
+- 此外，为避免频繁创建一些常用的整数，cpython 使用了小整数池的技术，将一些常用的整数先缓存起来。最后，本文还介绍了整数的加法实现，即不断进行加法操作然后进行进位操作。
+
+cpython 使用这种方式的主要原理就是大整数的加减乘除，本篇文章主要是介绍了加法操作，打击如果感兴趣可以自行阅读其他的源程序。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
 
