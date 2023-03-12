@@ -24,7 +24,22 @@ typedef struct _object {
 } PyObject;
 ```
 
+上面的数据结构用图的方式表示出来如下图所示：
+
 ![15-int](../images/15-int.png)
+
+- ob_refcnt，表示对象的引用记数的个数，这个对于垃圾回收很有用处，后面我们分析虚拟机中垃圾回收部分在深入分析。
+- ob_type，表示这个对象的数据类型是什么，在 python 当中有时候需要对数据的数据类型进行判断比如 isinstance, type 这两个关键字就会使用到这个字段。
+- ob_size，这个字段表示这个整型对象数组 ob_digit 当中一共有多少个元素。
+- digit 类型其实就是 uint32_t 类型的一个 宏定义，表示 32 位的整型数据。
+
+
+
+
+
+
+
+
 
 ```c
 PyObject *
