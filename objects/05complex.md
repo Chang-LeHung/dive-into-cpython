@@ -87,3 +87,115 @@ PyComplex_FromCComplex(Py_complex cval)
 - 将提取到的两个复数进行相加操作。
 - 根据得到的结果在创建一个 PyComplexObject 对象，并且将这个对象返回。
 
+### 复数取反
+
+复数取反操作就是将实部和虚部取相反数就可以了，这个操作也比较简单。
+
+```c
+static PyObject *
+complex_neg(PyComplexObject *v)
+{
+    Py_complex neg;
+    neg.real = -v->cval.real;
+    neg.imag = -v->cval.imag;
+    return PyComplex_FromCComplex(neg);
+}
+
+PyObject *
+PyComplex_FromCComplex(Py_complex cval)
+{
+    PyComplexObject *op;
+
+    /* Inline PyObject_New */
+    op = (PyComplexObject *) PyObject_MALLOC(sizeof(PyComplexObject));
+    if (op == NULL)
+        return PyErr_NoMemory();
+    (void)PyObject_INIT(op, &PyComplex_Type);
+    op->cval = cval;
+    return (PyObject *) op;
+}
+```
+
+### Repr 函数
+
+我们现在来介绍一下一个有趣的方法，就是复数类型的 repr 函数，这个和类的 \_\_repr\_\_ 函数是作用是一样的我们看一下复数的输出是什么：
+
+```python
+>>> data = complex(0, 1)
+>>> data
+1j
+>>> data = complex(1, 1)
+>>> data
+(1+1j)
+>>> print(data)
+(1+1j)
+```
+
+复数的 repr 对应的 C 函数如下所示：
+
+```c
+static PyObject *
+complex_repr(PyComplexObject *v)
+{
+    int precision = 0;
+    char format_code = 'r';
+    PyObject *result = NULL;
+
+    /* If these are non-NULL, they'll need to be freed. */
+    char *pre = NULL;
+    char *im = NULL;
+
+    /* These do not need to be freed. re is either an alias
+       for pre or a pointer to a constant.  lead and tail
+       are pointers to constants. */
+    char *re = NULL;
+    char *lead = "";
+    char *tail = "";
+    // 对应实部等于 0 虚部大于 0 的情况
+    if (v->cval.real == 0. && copysign(1.0, v->cval.real)==1.0) {
+        /* Real part is +0: just output the imaginary part and do not
+           include parens. */
+        re = "";
+        im = PyOS_double_to_string(v->cval.imag, format_code,
+                                   precision, 0, NULL);
+        if (!im) {
+            PyErr_NoMemory();
+            goto done;
+        }
+    } else {
+        /* Format imaginary part with sign, real part without. Include
+           parens in the result. */
+        // 将实部浮点数变成字符串
+        pre = PyOS_double_to_string(v->cval.real, format_code,
+                                    precision, 0, NULL);
+        if (!pre) {
+            PyErr_NoMemory();
+            goto done;
+        }
+        re = pre;
+        // 将虚部浮点数变成字符串
+        im = PyOS_double_to_string(v->cval.imag, format_code,
+                                   precision, Py_DTSF_SIGN, NULL);
+        if (!im) {
+            PyErr_NoMemory();
+            goto done;
+        }
+        // 用什么括号包围起来
+        lead = "(";
+        tail = ")";
+    }
+    result = PyUnicode_FromFormat("%s%s%sj%s", lead, re, im, tail);
+  done:
+    PyMem_Free(im);
+    PyMem_Free(pre);
+
+    return result;
+}
+```
+
+我们现在修改源程序将上面的 () 两个括号变成 []，编译之后执行的结果如下所示：
+
+![24-int](../images/24-int.png)
+
+可以看到括号变成了 [] 。
+
