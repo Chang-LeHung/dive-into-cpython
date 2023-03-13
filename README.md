@@ -4,4 +4,4 @@
 - [深入理解 Python 虚拟机：列表（list）的实现原理及源码剖析](objects/01list.md)
 - [深入理解 Python 虚拟机：元组（tuple）的实现原理及源码剖析](objects/02tuple.md)
 - [深入理解 Python 虚拟机：浮点数（float）的实现原理及源码剖析](objects/03float.md)
-- [深入理解 Python 虚拟机：整型（int）的实现原理及源码剖析](objects/04long.md)
+- [深入理解 Python 虚拟机：复数（complex）的实现原理及源码剖析](objects/05complex.md)
