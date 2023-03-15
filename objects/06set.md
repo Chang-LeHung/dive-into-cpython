@@ -39,3 +39,36 @@ typedef struct {
 上面的数据结果用图示如下图所示：
 
 ![25-set](../images/25-set.png)
+
+## 创建集合对象
+
+```c
+static PyObject *
+make_new_set(PyTypeObject *type, PyObject *iterable)
+{
+    PySetObject *so = NULL;
+
+    /* create PySetObject structure */
+    so = (PySetObject *)type->tp_alloc(type, 0);
+    if (so == NULL)
+        return NULL;
+
+    so->fill = 0;
+    so->used = 0;
+    so->mask = PySet_MINSIZE - 1;
+    so->table = so->smalltable;
+    so->hash = -1;
+    so->finger = 0;
+    so->weakreflist = NULL;
+
+    if (iterable != NULL) {
+        if (set_update_internal(so, iterable)) {
+            Py_DECREF(so);
+            return NULL;
+        }
+    }
+
+    return (PyObject *)so;
+}
+```
+
