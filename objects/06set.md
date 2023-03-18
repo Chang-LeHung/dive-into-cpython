@@ -40,7 +40,13 @@ typedef struct {
 
 ![25-set](../images/25-set.png)
 
+上面各个字段的含义如下所示：
+
+- 
+
 ## 创建集合对象
+
+首先先了解一下创建一个集合对象的过程，
 
 ```c
 static PyObject *
