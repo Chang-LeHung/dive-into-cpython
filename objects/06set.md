@@ -51,7 +51,7 @@ static PyObject _dummy_struct;
 - mask，数组的长度等于 $2^n$，mask 的值等于 $2^n - 1$ 。
 - table，实际保存 entry 对象的数组。
 - hash，这个值对 frozenset 有用，保存计算出来的哈希值。如果你的数组很大的话，计算哈希值其实也是一个比较大的开销，因此可以将计算出来的哈希值保存下来，以便下一次求的时候可以将哈希值直接返回，这也印证了在 python 当中为什么只有 immutable 对象才能够放入到集合和字典当中，因为哈希值计算一次保存下来了，如果再加入对象对象的哈希值也会变化，这样做就会发生错误了。
-- finger，主要是用于记录下一个开始寻找被删除对象的下标，这个在数组很大的时候会加快寻找被删除对象。
+- finger，主要是用于记录下一个开始寻找被删除对象的下标。
 - smalltable，默认的小数组，cpython 设置的一半的集合对象不会超过这个大小（8），因此在申请一个集合对象的时候直接就申请了这个小数组的内存大小。
 - weakrelist，这个字段主要和垃圾回收有关，这里暂时不进行详细说明。
 
@@ -102,7 +102,7 @@ make_new_set(PyTypeObject *type, PyObject *iterable)
 - 首先根据对象的哈希值，计算需要将对象放在哪个位置，也就是对应数组的下标。
 - 查看对应下标的位置是否存在对象，如果不存在对象则将数据保存在对应下标的位置。
 - 如果对应的位置存在对象，则查看是否和当前要插入的对象相等，则返回。
-- 如果不相等，则使用类似于线性探测的方式去寻找下一个要插入的位置（具体的实现可以查看相关代码）。
+- 如果不相等，则使用类似于线性探测的方式去寻找下一个要插入的位置（具体的实现可以查看相关代码，具体的操作为线性探测法 + 开放地址法）。
 
 ```c
 static PyObject *
@@ -268,13 +268,18 @@ set_lookkey(PySetObject *so, PyObject *key, Py_hash_t hash)
 
 ## 哈希表数组扩容
 
-在 cpython 当中对于给哈希表数组扩容的操作，很多情况下都是用下面这行代码：
+在 cpython 当中对于给哈希表数组扩容的操作，很多情况下都是用下面这行代码，从下面的代码来看对应扩容后数组的大小并不简单，当你的哈希表当中的元素个数大于 50000 时，新数组的大小是原数组的两倍，而如果你哈希表当中的元素个数小于等于 50000，那么久扩大为原来长度的四倍，这个主要是怕后面如果继续扩大四倍的话，可能会浪费很多内存空间。
 
 ```c
 set_table_resize(so, so->used>50000 ? so->used*2 : so->used*4);
 ```
 
-对应的扩容函数如下所示：
+首先需要了解一下扩容机制，当哈希表需要扩容的时候，主要有以下两个步骤：
+
+- 创建新的数组，用于存储哈希表的键。
+- 遍历原来的哈希表，将原来哈希表当中的数据加入到新的申请的数组当中。
+
+这里需要注意的是因为数组的长度发生了变化，但是 key 的哈希值却没有发生变化，因此在新的数组当中数据对应的下标位置也会发生变化，因此需重新将所有的对象重新进行一次插入操作，下面的整个操作相对来说比较简单，这里不再进行说明了。
 
 ```c
 static int
@@ -362,5 +367,83 @@ set_table_resize(PySetObject *so, Py_ssize_t minused)
         PyMem_DEL(oldtable);
     return 0;
 }
+
+static void
+set_insert_clean(PySetObject *so, PyObject *key, Py_hash_t hash)
+{
+    setentry *table = so->table;
+    setentry *entry;
+    size_t perturb = hash;
+    size_t mask = (size_t)so->mask;
+    size_t i = (size_t)hash & mask;
+    size_t j;
+    // #define LINEAR_PROBES 9
+    while (1) {
+        entry = &table[i];
+        if (entry->key == NULL)
+            goto found_null;
+        if (i + LINEAR_PROBES <= mask) {
+            for (j = 0; j < LINEAR_PROBES; j++) {
+                entry++;
+                if (entry->key == NULL)
+                    goto found_null;
+            }
+        }
+        perturb >>= PERTURB_SHIFT;
+        i = (i * 5 + 1 + perturb) & mask;
+    }
+  found_null:
+    entry->key = key;
+    entry->hash = hash;
+    so->fill++;
+    so->used++;
+}
 ```
+
+## 从集合当中删除元素 pop
+
+从集合当中删除元素的代码如下所示：
+
+```c
+static PyObject *
+set_pop(PySetObject *so)
+{
+    /* Make sure the search finger is in bounds */
+    Py_ssize_t i = so->finger & so->mask;
+    setentry *entry;
+    PyObject *key;
+
+    assert (PyAnySet_Check(so));
+    if (so->used == 0) {
+        PyErr_SetString(PyExc_KeyError, "pop from an empty set");
+        return NULL;
+    }
+
+    while ((entry = &so->table[i])->key == NULL || entry->key==dummy) {
+        i++;
+        if (i > so->mask)
+            i = 0;
+    }
+    key = entry->key;
+    entry->key = dummy;
+    entry->hash = -1;
+    so->used--;
+    so->finger = i + 1;         /* next place to start */
+    return key;
+}
+```
+
+上面的代码相对来说也比较清晰，从 finger 开始寻找存在的元素，并且删除他。我们在前面提到过，当一个元素被删除之后他会被赋值成 dummy 而且哈希值为 -1 。
+
+## 总结
+
+在本篇文章当中主要给大家简要介绍了一下在 cpython 当中的集合对象是如何实现的，主要是介绍了一些核心的数据结构和 cpython 当中具体的哈希表的实现原理，在 cpython 内部是使用线性探测法和开放地址法两种方法去解决哈希冲突的，同时 cpython 哈希表的扩容方式比价有意思，在哈希表当中的元素个数小于 50000 时，扩容的时候，扩容大小为原来的四倍，当大于 50000 时，扩容的大小为原来的两倍，这个主要是因为怕后面如果扩容太大没有使用非常浪费内存空间。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
 
