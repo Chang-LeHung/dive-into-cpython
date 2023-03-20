@@ -46,7 +46,7 @@ static PyObject _dummy_struct;
 
 上面各个字段的含义如下所示：
 
-- dummy entries ：如果在哈希表当中的数组原来有一个数据，如果我们删除这个 entry 的时候，对应的位置就会被赋值成 dummy，与 dummy 有关的定义在上面的代码当中已经给出。
+- dummy entries ：如果在哈希表当中的数组原来有一个数据，如果我们删除这个 entry 的时候，对应的位置就会被赋值成 dummy，与 dummy 有关的定义在上面的代码当中已经给出，dummy 对象的哈希值等于 -1。
 - 明白 dummy 的含义之后，fill 和 used 这两个字段的含义就比较容易理解了，used 就是数组当中真实有效的对象的个数，fill 还需要加上 dummy 对象的个数。
 - mask，数组的长度等于 $2^n$，mask 的值等于 $2^n - 1$ 。
 - table，实际保存 entry 对象的数组。
@@ -92,6 +92,87 @@ make_new_set(PyTypeObject *type, PyObject *iterable)
     }
 
     return (PyObject *)so;
+}
+```
+
+## 往集合当中加入数据
+
+首先我们先大致理清楚往集合当中插入数据的流程：
+
+- 首先根据对象的哈希值，计算需要将对象放在哪个位置，也就是对应数组的下标。
+- 查看对应下标的位置是否存在对象，如果不存在对象则将数据保存在对应下标的位置。
+- 如果对应的位置存在对象，则查看是否和当前要插入的对象相等，则返回。
+- 如果不想等，则使用类似于线性探测的方式去寻找下一个要插入的位置（具体的实现可以查看相关代码）。
+
+```c
+static PyObject *
+set_add(PySetObject *so, PyObject *key)
+{
+    if (set_add_key(so, key))
+        return NULL;
+    Py_RETURN_NONE;
+}
+
+static int
+set_add_key(PySetObject *so, PyObject *key)
+{
+    setentry entry;
+    Py_hash_t hash;
+
+    if (!PyUnicode_CheckExact(key) ||
+        (hash = ((PyASCIIObject *) key)->hash) == -1) {
+        hash = PyObject_Hash(key);
+        if (hash == -1)
+            return -1;
+    }
+    entry.key = key;
+    entry.hash = hash;
+    return set_add_entry(so, &entry);
+}
+
+static int
+set_add_entry(PySetObject *so, setentry *entry)
+{
+    Py_ssize_t n_used;
+    PyObject *key = entry->key;
+    Py_hash_t hash = entry->hash;
+
+    assert(so->fill <= so->mask);  /* at least one empty slot */
+    n_used = so->used;
+    Py_INCREF(key);
+    if (set_insert_key(so, key, hash)) {
+        Py_DECREF(key);
+        return -1;
+    }
+    if (!(so->used > n_used && so->fill*3 >= (so->mask+1)*2))
+        return 0;
+    return set_table_resize(so, so->used>50000 ? so->used*2 : so->used*4);
+}
+
+static int
+set_insert_key(PySetObject *so, PyObject *key, Py_hash_t hash)
+{
+    setentry *entry;
+
+    entry = set_lookkey(so, key, hash);
+    if (entry == NULL)
+        return -1;
+    if (entry->key == NULL) {
+        /* UNUSED */
+        entry->key = key;
+        entry->hash = hash;
+        so->fill++;
+        so->used++;
+    } else if (entry->key == dummy) {
+        /* DUMMY */
+        entry->key = key;
+        entry->hash = hash;
+        so->used++;
+    } else {
+        /* ACTIVE */
+        Py_DECREF(key);
+    }
+    return 0;
 }
 ```
 
