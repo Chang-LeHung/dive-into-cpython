@@ -26,7 +26,7 @@ typedef struct {
     Py_hash_t hash;             /* Only used by frozenset objects */
     Py_ssize_t finger;          /* Search finger for pop() */
 
-    setentry smalltable[PySet_MINSIZE];
+    setentry smalltable[PySet_MINSIZE]; // #define PySet_MINSIZE 8
     PyObject *weakreflist;      /* List of weak references */
 } PySetObject;
 
@@ -46,7 +46,14 @@ static PyObject _dummy_struct;
 
 上面各个字段的含义如下所示：
 
-- 
+- dummy entries ：如果在哈希表当中的数组原来有一个数据，如果我们删除这个 entry 的时候，对应的位置就会被赋值成 dummy，与 dummy 有关的定义在上面的代码当中已经给出。
+- 明白 dummy 的含义之后，fill 和 used 这两个字段的含义就比较容易理解了，used 就是数组当中真实有效的对象的个数，fill 还需要加上 dummy 对象的个数。
+- mask，数组的长度等于 $2^n$，mask 的值等于 $2^n - 1$ 。
+- table，实际保存 entry 对象的数组。
+- hash，这个值对 frozenset 有用，保存计算出来的哈希值。如果你的数组很大的话，计算哈希值其实也是一个比较大的开销，因此可以将计算出来的哈希值保存下来，以便下一次求的时候可以将哈希值直接返回，这也印证了在 python 当中为什么只有 immutable 对象才能够放入到集合和字典当中，因为哈希值计算一次保存下来了，如果再加入对象对象的哈希值也会变化，这样做就会发生错误了。
+- finger，主要是用于记录下一个开始寻找被删除对象的下标，这个在数组很大的时候会加快寻找被删除对象。
+- smalltable，默认的小数组，cpython 设置的一半的集合对象不会超过这个大小（8），因此在申请一个集合对象的时候直接就申请了这个小数组的内存大小。
+- weakrelist，这个字段主要和垃圾回收有关，这里暂时不进行详细说明。
 
 ## 创建集合对象
 
