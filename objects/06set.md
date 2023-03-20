@@ -102,7 +102,7 @@ make_new_set(PyTypeObject *type, PyObject *iterable)
 - 首先根据对象的哈希值，计算需要将对象放在哪个位置，也就是对应数组的下标。
 - 查看对应下标的位置是否存在对象，如果不存在对象则将数据保存在对应下标的位置。
 - 如果对应的位置存在对象，则查看是否和当前要插入的对象相等，则返回。
-- 如果不想等，则使用类似于线性探测的方式去寻找下一个要插入的位置（具体的实现可以查看相关代码）。
+- 如果不相等，则使用类似于线性探测的方式去寻找下一个要插入的位置（具体的实现可以查看相关代码）。
 
 ```c
 static PyObject *
@@ -118,13 +118,15 @@ set_add_key(PySetObject *so, PyObject *key)
 {
     setentry entry;
     Py_hash_t hash;
-
+    // 这里就查看一下是否是字符串，如果是字符串直接拿到哈希值
     if (!PyUnicode_CheckExact(key) ||
         (hash = ((PyASCIIObject *) key)->hash) == -1) {
+      	// 如果不是字符串则需要调用对象自己的哈希函数求得对应的哈希值
         hash = PyObject_Hash(key);
         if (hash == -1)
             return -1;
     }
+    // 创建一个 entry 对象将这个对象加入到哈希表当中
     entry.key = key;
     entry.hash = hash;
     return set_add_entry(so, &entry);
@@ -140,12 +142,15 @@ set_add_entry(PySetObject *so, setentry *entry)
     assert(so->fill <= so->mask);  /* at least one empty slot */
     n_used = so->used;
     Py_INCREF(key);
+    // 调用函数 set_insert_key 将对象插入到数组当中
     if (set_insert_key(so, key, hash)) {
         Py_DECREF(key);
         return -1;
     }
+    // 这里就是哈希表的核心的扩容机制
     if (!(so->used > n_used && so->fill*3 >= (so->mask+1)*2))
         return 0;
+    // 这是扩容大小的逻辑
     return set_table_resize(so, so->used>50000 ? so->used*2 : so->used*4);
 }
 
@@ -153,7 +158,7 @@ static int
 set_insert_key(PySetObject *so, PyObject *key, Py_hash_t hash)
 {
     setentry *entry;
-
+    // set_lookkey 这个函数便是插入的核心的逻辑的实现对应的实现函数在下方
     entry = set_lookkey(so, key, hash);
     if (entry == NULL)
         return -1;
@@ -172,6 +177,189 @@ set_insert_key(PySetObject *so, PyObject *key, Py_hash_t hash)
         /* ACTIVE */
         Py_DECREF(key);
     }
+    return 0;
+}
+
+// 下面的代码就是在执行我们在前面所谈到的逻辑，直到找到相同的 key 或者空位置才退出 while 循环
+static setentry *
+set_lookkey(PySetObject *so, PyObject *key, Py_hash_t hash)
+{
+    setentry *table = so->table;
+    setentry *freeslot = NULL;
+    setentry *entry;
+    size_t perturb = hash;
+    size_t mask = so->mask;
+    size_t i = (size_t)hash & mask; /* Unsigned for defined overflow behavior */
+    size_t j;
+    int cmp;
+
+    entry = &table[i];
+    if (entry->key == NULL)
+        return entry;
+
+    while (1) {
+        if (entry->hash == hash) {
+            PyObject *startkey = entry->key;
+            /* startkey cannot be a dummy because the dummy hash field is -1 */
+            assert(startkey != dummy);
+            if (startkey == key)
+                return entry;
+            if (PyUnicode_CheckExact(startkey)
+                && PyUnicode_CheckExact(key)
+                && unicode_eq(startkey, key))
+                return entry;
+            Py_INCREF(startkey);
+            // returning -1 for error, 0 for false, 1 for true
+            cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
+            Py_DECREF(startkey);
+            if (cmp < 0)                                          /* unlikely */
+                return NULL;
+            if (table != so->table || entry->key != startkey)     /* unlikely */
+                return set_lookkey(so, key, hash);
+            if (cmp > 0)                                          /* likely */
+                return entry;
+            mask = so->mask;                 /* help avoid a register spill */
+        }
+        if (entry->hash == -1 && freeslot == NULL)
+            freeslot = entry;
+
+        if (i + LINEAR_PROBES <= mask) {
+            for (j = 0 ; j < LINEAR_PROBES ; j++) {
+                entry++;
+                if (entry->key == NULL)
+                    goto found_null;
+                if (entry->hash == hash) {
+                    PyObject *startkey = entry->key;
+                    assert(startkey != dummy);
+                    if (startkey == key)
+                        return entry;
+                    if (PyUnicode_CheckExact(startkey)
+                        && PyUnicode_CheckExact(key)
+                        && unicode_eq(startkey, key))
+                        return entry;
+                    Py_INCREF(startkey);
+                    // returning -1 for error, 0 for false, 1 for true
+                    cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
+                    Py_DECREF(startkey);
+                    if (cmp < 0)
+                        return NULL;
+                    if (table != so->table || entry->key != startkey)
+                        return set_lookkey(so, key, hash);
+                    if (cmp > 0)
+                        return entry;
+                    mask = so->mask;
+                }
+                if (entry->hash == -1 && freeslot == NULL)
+                    freeslot = entry;
+            }
+        }
+
+        perturb >>= PERTURB_SHIFT; // #define PERTURB_SHIFT 5
+        i = (i * 5 + 1 + perturb) & mask;
+
+        entry = &table[i];
+        if (entry->key == NULL)
+            goto found_null;
+    }
+  found_null:
+    return freeslot == NULL ? entry : freeslot;
+}
+```
+
+## 哈希表数组扩容
+
+在 cpython 当中对于给哈希表数组扩容的操作，很多情况下都是用下面这行代码：
+
+```c
+set_table_resize(so, so->used>50000 ? so->used*2 : so->used*4);
+```
+
+对应的扩容函数如下所示：
+
+```c
+static int
+set_table_resize(PySetObject *so, Py_ssize_t minused)
+{
+    Py_ssize_t newsize;
+    setentry *oldtable, *newtable, *entry;
+    Py_ssize_t oldfill = so->fill;
+    Py_ssize_t oldused = so->used;
+    int is_oldtable_malloced;
+    setentry small_copy[PySet_MINSIZE];
+
+    assert(minused >= 0);
+
+    /* Find the smallest table size > minused. */
+    /* XXX speed-up with intrinsics */
+    for (newsize = PySet_MINSIZE;
+         newsize <= minused && newsize > 0;
+         newsize <<= 1)
+        ;
+    if (newsize <= 0) {
+        PyErr_NoMemory();
+        return -1;
+    }
+
+    /* Get space for a new table. */
+    oldtable = so->table;
+    assert(oldtable != NULL);
+    is_oldtable_malloced = oldtable != so->smalltable;
+
+    if (newsize == PySet_MINSIZE) {
+        /* A large table is shrinking, or we can't get any smaller. */
+        newtable = so->smalltable;
+        if (newtable == oldtable) {
+            if (so->fill == so->used) {
+                /* No dummies, so no point doing anything. */
+                return 0;
+            }
+            /* We're not going to resize it, but rebuild the
+               table anyway to purge old dummy entries.
+               Subtle:  This is *necessary* if fill==size,
+               as set_lookkey needs at least one virgin slot to
+               terminate failing searches.  If fill < size, it's
+               merely desirable, as dummies slow searches. */
+            assert(so->fill > so->used);
+            memcpy(small_copy, oldtable, sizeof(small_copy));
+            oldtable = small_copy;
+        }
+    }
+    else {
+        newtable = PyMem_NEW(setentry, newsize);
+        if (newtable == NULL) {
+            PyErr_NoMemory();
+            return -1;
+        }
+    }
+
+    /* Make the set empty, using the new table. */
+    assert(newtable != oldtable);
+    memset(newtable, 0, sizeof(setentry) * newsize);
+    so->fill = 0;
+    so->used = 0;
+    so->mask = newsize - 1;
+    so->table = newtable;
+
+    /* Copy the data over; this is refcount-neutral for active entries;
+       dummy entries aren't copied over, of course */
+    if (oldfill == oldused) {
+        for (entry = oldtable; oldused > 0; entry++) {
+            if (entry->key != NULL) {
+                oldused--;
+                set_insert_clean(so, entry->key, entry->hash);
+            }
+        }
+    } else {
+        for (entry = oldtable; oldused > 0; entry++) {
+            if (entry->key != NULL && entry->key != dummy) {
+                oldused--;
+                set_insert_clean(so, entry->key, entry->hash);
+            }
+        }
+    }
+
+    if (is_oldtable_malloced)
+        PyMem_DEL(oldtable);
     return 0;
 }
 ```
