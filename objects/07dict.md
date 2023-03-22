@@ -118,8 +118,104 @@ static PyDictKeysObject *new_keys_object(Py_ssize_t size)
     dk->dk_lookup = lookdict_unicode_nodummy;
     return dk;
 }
-
 ```
 
 
+
+## 哈希表扩容机制
+
+首先我们先了解一下字典实现当中哈希表的扩容机制，当我们不断的往字典当中加入新的数据的时候，很快字典当中的数据就会达到数组长度的 $\frac{2}{3}$ ，这个时候就需要扩容，扩容之后的数组大小计算方式如下：
+
+```c
+#define GROWTH_RATE(d) (((d)->ma_used*2)+((d)->ma_keys->dk_size>>1))
+```
+
+新的数组的大小等于原来键值对的个数乘以 2 加上原来数组长度的一半。
+
+```c
+static int
+insertion_resize(PyDictObject *mp)
+{
+    return dictresize(mp, GROWTH_RATE(mp));
+}
+
+static int
+dictresize(PyDictObject *mp, Py_ssize_t minused)
+{
+    Py_ssize_t newsize;
+    PyDictKeysObject *oldkeys;
+    PyObject **oldvalues;
+    Py_ssize_t i, oldsize;
+
+/* Find the smallest table size > minused. */
+    for (newsize = PyDict_MINSIZE_COMBINED;
+         newsize <= minused && newsize > 0;
+         newsize <<= 1)
+        ;
+    if (newsize <= 0) {
+        PyErr_NoMemory();
+        return -1;
+    }
+    oldkeys = mp->ma_keys;
+    oldvalues = mp->ma_values;
+    /* Allocate a new table. */
+    mp->ma_keys = new_keys_object(newsize);
+    if (mp->ma_keys == NULL) {
+        mp->ma_keys = oldkeys;
+        return -1;
+    }
+    if (oldkeys->dk_lookup == lookdict)
+        mp->ma_keys->dk_lookup = lookdict;
+    oldsize = DK_SIZE(oldkeys);
+    mp->ma_values = NULL;
+    /* If empty then nothing to copy so just return */
+    if (oldsize == 1) {
+        assert(oldkeys == Py_EMPTY_KEYS);
+        DK_DECREF(oldkeys);
+        return 0;
+    }
+    /* Main loop below assumes we can transfer refcount to new keys
+     * and that value is stored in me_value.
+     * Increment ref-counts and copy values here to compensate
+     * This (resizing a split table) should be relatively rare */
+    if (oldvalues != NULL) {
+        for (i = 0; i < oldsize; i++) {
+            if (oldvalues[i] != NULL) {
+                Py_INCREF(oldkeys->dk_entries[i].me_key);
+                oldkeys->dk_entries[i].me_value = oldvalues[i];
+            }
+        }
+    }
+    /* Main loop */
+    for (i = 0; i < oldsize; i++) {
+        PyDictKeyEntry *ep = &oldkeys->dk_entries[i];
+        if (ep->me_value != NULL) {
+            assert(ep->me_key != dummy);
+            insertdict_clean(mp, ep->me_key, ep->me_hash, ep->me_value);
+        }
+    }
+    mp->ma_keys->dk_usable -= mp->ma_used;
+    if (oldvalues != NULL) {
+        /* NULL out me_value slot in oldkeys, in case it was shared */
+        for (i = 0; i < oldsize; i++)
+            oldkeys->dk_entries[i].me_value = NULL;
+        assert(oldvalues != empty_values);
+        free_values(oldvalues);
+        DK_DECREF(oldkeys);
+    }
+    else {
+        assert(oldkeys->dk_lookup != lookdict_split);
+        if (oldkeys->dk_lookup != lookdict_unicode_nodummy) {
+            PyDictKeyEntry *ep0 = &oldkeys->dk_entries[0];
+            for (i = 0; i < oldsize; i++) {
+                if (ep0[i].me_key == dummy)
+                    Py_DECREF(dummy);
+            }
+        }
+        assert(oldkeys->dk_refcnt == 1);
+        DK_DEBUG_DECREF PyMem_FREE(oldkeys);
+    }
+    return 0;
+}
+```
 
