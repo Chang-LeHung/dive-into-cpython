@@ -132,6 +132,15 @@ static PyDictKeysObject *new_keys_object(Py_ssize_t size)
 
 新的数组的大小等于原来键值对的个数乘以 2 加上原来数组长度的一半。
 
+总的来说扩容主要有三个步骤：
+
+- 计算新的数组的大小。
+
+- 创建新的数组。
+- 将原来的哈希表当中的数据加入到新的数组当中（也就是再哈希的过程）。
+
+具体的实现代码如下所示：
+
 ```c
 static int
 insertion_resize(PyDictObject *mp)
@@ -146,7 +155,7 @@ dictresize(PyDictObject *mp, Py_ssize_t minused)
     PyDictKeysObject *oldkeys;
     PyObject **oldvalues;
     Py_ssize_t i, oldsize;
-
+    // 下面的代码的主要作用就是计算得到能够大于等于 minused 最小的 2 的整数次幂
 /* Find the smallest table size > minused. */
     for (newsize = PyDict_MINSIZE_COMBINED;
          newsize <= minused && newsize > 0;
@@ -159,6 +168,7 @@ dictresize(PyDictObject *mp, Py_ssize_t minused)
     oldkeys = mp->ma_keys;
     oldvalues = mp->ma_values;
     /* Allocate a new table. */
+   // 创建新的数组
     mp->ma_keys = new_keys_object(newsize);
     if (mp->ma_keys == NULL) {
         mp->ma_keys = oldkeys;
@@ -187,6 +197,7 @@ dictresize(PyDictObject *mp, Py_ssize_t minused)
         }
     }
     /* Main loop */
+    // 将原来数组当中的元素加入到新的数组当中
     for (i = 0; i < oldsize; i++) {
         PyDictKeyEntry *ep = &oldkeys->dk_entries[i];
         if (ep->me_value != NULL) {
@@ -194,6 +205,7 @@ dictresize(PyDictObject *mp, Py_ssize_t minused)
             insertdict_clean(mp, ep->me_key, ep->me_hash, ep->me_value);
         }
     }
+    // 更新一下当前哈希表当中能够插入多少数据
     mp->ma_keys->dk_usable -= mp->ma_used;
     if (oldvalues != NULL) {
         /* NULL out me_value slot in oldkeys, in case it was shared */
@@ -218,4 +230,47 @@ dictresize(PyDictObject *mp, Py_ssize_t minused)
     return 0;
 }
 ```
+
+## 字典插入数据
+
+我们在不断的往字典当中插入数据的时候很可能会遇到哈希冲突，字典处理哈希冲突的方法基本和集合遇到哈希冲突的处理方法是差不多的，都是使用开发地址法，但是这个开放地址法实现的相对比较复杂，具体程序如下所示：
+
+```c
+static void
+insertdict_clean(PyDictObject *mp, PyObject *key, Py_hash_t hash,
+                 PyObject *value)
+{
+    size_t i;
+    size_t perturb;
+    PyDictKeysObject *k = mp->ma_keys;
+    // 首先得到 mask 的值
+    size_t mask = (size_t)DK_SIZE(k)-1;
+    PyDictKeyEntry *ep0 = &k->dk_entries[0];
+    PyDictKeyEntry *ep;
+  
+    i = hash & mask;
+    ep = &ep0[i];
+    for (perturb = hash; ep->me_key != NULL; perturb >>= PERTURB_SHIFT) {
+        // 下面便是遇到哈希冲突时的处理办法
+        i = (i << 2) + i + perturb + 1;
+        ep = &ep0[i & mask];
+    }
+    assert(ep->me_value == NULL);
+    ep->me_key = key;
+    ep->me_hash = hash;
+    ep->me_value = value;
+}
+```
+
+## 总结
+
+在本篇文章当中主要给大家简单介绍了一下在 cpython 内部字典的实现机制，总的来说整个字典的实现机制还是相当复杂的，本篇文章只是谈到了整个字典实现的一小部分，主要设计字典的内存布局以及相关的数据结构，最重要的字典的创建扩容和插入，这对我们理解哈希表的结构还是非常有帮助的！！！
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
 
