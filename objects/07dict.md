@@ -33,11 +33,47 @@ typedef struct {
 
 ![26-dict](../images/26-dict.png)
 
+上面的各个字段的含义为：
+
+- ob_refcnt，对象的引用计数。
+- ob_type，对象的数据类型。
+- ma_used，当前哈希表当中的数据个数。
+- ma_keys，指向保存键值对的数组。
+
+整个哈希表的布局大致如下图所示：
+
 
 
 ![26-dict](../images/27-dict.png)
 
 ## 源码分析
+
+```c
+static PyObject *
+dict_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
+{
+    PyObject *self;
+    PyDictObject *d;
+
+    assert(type != NULL && type->tp_alloc != NULL);
+    self = type->tp_alloc(type, 0);
+    if (self == NULL)
+        return NULL;
+    d = (PyDictObject *)self;
+
+    /* The object has been implicitly tracked by tp_alloc */
+    if (type == &PyDict_Type)
+        _PyObject_GC_UNTRACK(d);
+
+    d->ma_used = 0;
+    d->ma_keys = new_keys_object(PyDict_MINSIZE_COMBINED);
+    if (d->ma_keys == NULL) {
+        Py_DECREF(self);
+        return NULL;
+    }
+    return self;
+}
+```
 
 
 
