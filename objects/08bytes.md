@@ -31,3 +31,65 @@ typedef struct _object {
 上面的数据结构用图示如下所示：
 
 ![28-bytes](../images/28-bytes.png)
+
+现在我们来解释一下上面的数据结构各个字段的含义：
+
+- ob_refcnt，这个还是对象的引用计数的个数，主要是在垃圾回收的时候有用。
+- ob_type，这个是对象的数据类型。
+- ob_size，表示这个对象当中字节的个数。
+- ob_shash，对象的哈希值，如果还没有计算，哈希值为 -1 。
+- ob_sval，一个数据存储一个字节的数据，需要注意的是 ob_sval[size] 一定等于 '\0' ，表示字符串的结尾。
+
+可能你会有疑问上面的结构体当中并没有后面的那么多字节啊，数组只有一个字节的数据啊，这是因为在 cpython 的实现当中除了申请 PyBytesObject 大的小内存空间之外，还会在这个基础之上申请连续的额外的内存空间用于保存数据，在后续的源码分析当中可以看到这一点。
+
+下面我们举几个例子来说明一下上面的布局：
+
+![29-bytes](../images/29-bytes.png)
+
+上面是空和字符串 abc 的字节表示。
+
+## 创建字节对象
+
+下面是在 cpython 当中通过字节数创建 PyBytesObject 对象的函数。
+
+```c
+static PyObject *
+_PyBytes_FromSize(Py_ssize_t size, int use_calloc)
+{
+    PyBytesObject *op;
+    assert(size >= 0);
+
+    if (size == 0 && (op = nullstring) != NULL) {
+#ifdef COUNT_ALLOCS
+        null_strings++;
+#endif
+        Py_INCREF(op);
+        return (PyObject *)op;
+    }
+
+    if ((size_t)size > (size_t)PY_SSIZE_T_MAX - PyBytesObject_SIZE) {
+        PyErr_SetString(PyExc_OverflowError,
+                        "byte string is too large");
+        return NULL;
+    }
+
+    /* Inline PyObject_NewVar */
+    if (use_calloc)
+        op = (PyBytesObject *)PyObject_Calloc(1, PyBytesObject_SIZE + size);
+    else
+        op = (PyBytesObject *)PyObject_Malloc(PyBytesObject_SIZE + size);
+    if (op == NULL)
+        return PyErr_NoMemory();
+    (void)PyObject_INIT_VAR(op, &PyBytes_Type, size);
+    op->ob_shash = -1;
+    if (!use_calloc)
+        op->ob_sval[size] = '\0';
+    /* empty byte string singleton */
+    if (size == 0) {
+        nullstring = op;
+        Py_INCREF(op);
+    }
+    return (PyObject *) op;
+}
+```
+
