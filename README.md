@@ -9,6 +9,7 @@
 - [深入理解 Python 虚拟机：复数（complex）的实现原理及源码剖析](objects/05complex.md)
 - [深入理解 Python 虚拟机：集合（set）的实现原理及源码剖析](objects/06set.md)
 - [深入理解 Python 虚拟机：字典（dict）的实现原理及源码剖析](objects/07dict.md)
+- [深入理解 Python 虚拟机：字节（bytes）的实现原理及源码剖析](objects/08bytes.md)
 
 ## 给 cpython 添加 C 扩展模块
 
