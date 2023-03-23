@@ -205,4 +205,243 @@ b'abcedf'
 >>> 
 ```
 
-## 
+在上面的拼接函数当中会拷贝原来的两个字节对象，因此需要谨慎使用，一旦发生非常多的拷贝的话是非常耗费内存的。因此需要警惕使用循环内的内存拼接。比如对于 [b"a", b"b", b"c"] 来说，如果使用循环拼接的话，那么会将 b"a" 拷贝两次。
+
+```c
+>>> res = b""
+>>> for item in  [b"a", b"b", b"c"]:
+...     res += item
+...
+>>> res
+b'abc'
+>>>
+```
+
+因为 b"a", b"b" 在拼接的时候会将他们分别拷贝一次，在进行 b"ab"，b"c" 拼接的时候又会将 ab 和 c 拷贝一次，那么具体的拷贝情况如下所示：
+
+- "a" 拷贝了一次。
+- "b" 拷贝了一次。
+- "ab" 拷贝了一次。
+- "c" 拷贝了一次。
+
+但是实际上我们的需求是只需要对 [b"a", b"b", b"c"] 当中的数据各拷贝一次，如果我们要实现这一点可以使用 b"".join([b"a", b"b", b"c"])，直接将 [b"a", b"b", b"c"] 作为参数传递，然后各自只拷贝一次，具体的实现代码如下所示，在这个例子当中 sep 就是空串 b""，iterable 就是 [b"a", b"b", b"c"] 。
+
+```c
+Py_LOCAL_INLINE(PyObject *)
+STRINGLIB(bytes_join)(PyObject *sep, PyObject *iterable)
+{
+    char *sepstr = STRINGLIB_STR(sep);
+    const Py_ssize_t seplen = STRINGLIB_LEN(sep);
+    PyObject *res = NULL;
+    char *p;
+    Py_ssize_t seqlen = 0;
+    Py_ssize_t sz = 0;
+    Py_ssize_t i, nbufs;
+    PyObject *seq, *item;
+    Py_buffer *buffers = NULL;
+#define NB_STATIC_BUFFERS 10
+    Py_buffer static_buffers[NB_STATIC_BUFFERS];
+
+    seq = PySequence_Fast(iterable, "can only join an iterable");
+    if (seq == NULL) {
+        return NULL;
+    }
+
+    seqlen = PySequence_Fast_GET_SIZE(seq);
+    if (seqlen == 0) {
+        Py_DECREF(seq);
+        return STRINGLIB_NEW(NULL, 0);
+    }
+#ifndef STRINGLIB_MUTABLE
+    if (seqlen == 1) {
+        item = PySequence_Fast_GET_ITEM(seq, 0);
+        if (STRINGLIB_CHECK_EXACT(item)) {
+            Py_INCREF(item);
+            Py_DECREF(seq);
+            return item;
+        }
+    }
+#endif
+    if (seqlen > NB_STATIC_BUFFERS) {
+        buffers = PyMem_NEW(Py_buffer, seqlen);
+        if (buffers == NULL) {
+            Py_DECREF(seq);
+            PyErr_NoMemory();
+            return NULL;
+        }
+    }
+    else {
+        buffers = static_buffers;
+    }
+
+    /* Here is the general case.  Do a pre-pass to figure out the total
+     * amount of space we'll need (sz), and see whether all arguments are
+     * bytes-like.
+     */
+    for (i = 0, nbufs = 0; i < seqlen; i++) {
+        Py_ssize_t itemlen;
+        item = PySequence_Fast_GET_ITEM(seq, i);
+        if (PyBytes_CheckExact(item)) {
+            /* Fast path. */
+            Py_INCREF(item);
+            buffers[i].obj = item;
+            buffers[i].buf = PyBytes_AS_STRING(item);
+            buffers[i].len = PyBytes_GET_SIZE(item);
+        }
+        else if (PyObject_GetBuffer(item, &buffers[i], PyBUF_SIMPLE) != 0) {
+            PyErr_Format(PyExc_TypeError,
+                         "sequence item %zd: expected a bytes-like object, "
+                         "%.80s found",
+                         i, Py_TYPE(item)->tp_name);
+            goto error;
+        }
+        nbufs = i + 1;  /* for error cleanup */
+        itemlen = buffers[i].len;
+        if (itemlen > PY_SSIZE_T_MAX - sz) {
+            PyErr_SetString(PyExc_OverflowError,
+                            "join() result is too long");
+            goto error;
+        }
+        sz += itemlen;
+        if (i != 0) {
+            if (seplen > PY_SSIZE_T_MAX - sz) {
+                PyErr_SetString(PyExc_OverflowError,
+                                "join() result is too long");
+                goto error;
+            }
+            sz += seplen;
+        }
+        if (seqlen != PySequence_Fast_GET_SIZE(seq)) {
+            PyErr_SetString(PyExc_RuntimeError,
+                            "sequence changed size during iteration");
+            goto error;
+        }
+    }
+
+    /* Allocate result space. */
+    res = STRINGLIB_NEW(NULL, sz);
+    if (res == NULL)
+        goto error;
+
+    /* Catenate everything. */
+    p = STRINGLIB_STR(res);
+    if (!seplen) {
+        /* fast path */
+        for (i = 0; i < nbufs; i++) {
+            Py_ssize_t n = buffers[i].len;
+            char *q = buffers[i].buf;
+            Py_MEMCPY(p, q, n);
+            p += n;
+        }
+        goto done;
+    }
+    // 具体的实现逻辑就是在这里
+    for (i = 0; i < nbufs; i++) {
+        Py_ssize_t n;
+        char *q;
+        if (i) {
+            // 首先现将 sepstr 拷贝到新的数组里面但是在我们举的例子当中是空串 b""
+            Py_MEMCPY(p, sepstr, seplen);
+            p += seplen;
+        }
+        n = buffers[i].len;
+        q = buffers[i].buf;
+        // 然后将列表当中第 i 个 bytes 的数据拷贝到 p 当中 这样就是实现了我们所需要的效果
+        Py_MEMCPY(p, q, n);
+        p += n;
+    }
+    goto done;
+
+error:
+    res = NULL;
+done:
+    Py_DECREF(seq);
+    for (i = 0; i < nbufs; i++)
+        PyBuffer_Release(&buffers[i]);
+    if (buffers != static_buffers)
+        PyMem_FREE(buffers);
+    return res;
+}
+```
+
+
+
+## 单字节字符
+
+在 cpython 的内部实现当中给单字节的字符做了一个小的缓冲池：
+
+```c
+static PyBytesObject *characters[UCHAR_MAX + 1]; // UCHAR_MAX 在 64 位系统当中等于 255
+```
+
+当创建的 bytes 只有一个字符的时候就可以检查是否 characters 当中已经存在了，如果存在就直接返回这个已经创建好的 PyBytesObject 对象，否则再进行创建。新创建的 PyBytesObject 对象如果长度等于 1 的话也会被加入到这个数组当中。下面是 PyBytesObject 的另外一个创建函数：
+
+```c
+PyObject *
+PyBytes_FromStringAndSize(const char *str, Py_ssize_t size)
+{
+    PyBytesObject *op;
+    if (size < 0) {
+        PyErr_SetString(PyExc_SystemError,
+            "Negative size passed to PyBytes_FromStringAndSize");
+        return NULL;
+    }
+    // 如果创建长度等于 1 而且对象在 characters 当中存在的话那么就直接返回
+    if (size == 1 && str != NULL &&
+        (op = characters[*str & UCHAR_MAX]) != NULL)
+    {
+#ifdef COUNT_ALLOCS
+        one_strings++;
+#endif
+        Py_INCREF(op);
+        return (PyObject *)op;
+    }
+
+    op = (PyBytesObject *)_PyBytes_FromSize(size, 0);
+    if (op == NULL)
+        return NULL;
+    if (str == NULL)
+        return (PyObject *) op;
+
+    Py_MEMCPY(op->ob_sval, str, size);
+    /* share short strings */
+    // 如果创建的对象的长度等于 1 那么久将这个对象保存到 characters 当中
+    if (size == 1) {
+        characters[*str & UCHAR_MAX] = op;
+        Py_INCREF(op);
+    }
+    return (PyObject *) op;
+}
+```
+
+我们可以使用下面的代码进行验证：
+
+```python
+>>> a = b"a"
+>>> b  =b"a"
+>>> a == b
+True
+>>> a is b
+True
+>>> a = b"aa"
+>>> b = b"aa"
+>>> a == b
+True
+>>> a is b
+False
+```
+
+从上面的代码可以知道，确实当我们创建的 bytes 的长度等于 1 的时候对象确实是同一个对象。
+
+## 总结
+
+在本篇文章当中主要给大家介绍了在 cpython 内部对于 bytes 的实现，重点介绍了 cpython 当中 PyBytesObject 的内存布局和创建 PyBytesObject 的函数，以及对于 bytes 对象的拼接细节和 cpython 内部单字节字符的缓冲池。在程序当中最好使用 join 操作进行 btyes 的拼接操作，否则效率会比较低。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
