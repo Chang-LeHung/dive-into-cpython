@@ -110,3 +110,93 @@ _PyBytes_FromSize(Py_ssize_t size, int use_calloc)
 
 其中 32 是 PyBytesObject 4 个字段所占用的内存空间，ob_refcnt、ob_type、ob_size和 ob_shash 各占 8 个字节。11 是表示字符串 "hello world" 占用 11 个字节，最后一个字节是 '\0' 。
 
+## 查看字节长度
+
+这个函数主要是返回 PyBytesObject 对象的字节长度，也就是直接返回 ob_size 的值。
+
+```c
+static Py_ssize_t
+bytes_length(PyBytesObject *a)
+{
+    // (((PyVarObject*)(ob))->ob_size)
+    return Py_SIZE(a);
+}
+```
+
+## 字节拼接
+
+在 python 当中执行下面的代码就会执行字节拼接函数：
+
+```python
+>>> b"abc" + b"edf"
+```
+
+下方就是具体的执行字节拼接的函数：
+
+```c
+/* This is also used by PyBytes_Concat() */
+static PyObject *
+bytes_concat(PyObject *a, PyObject *b)
+{
+    Py_buffer va, vb;
+    PyObject *result = NULL;
+
+    va.len = -1;
+    vb.len = -1;
+    if (PyObject_GetBuffer(a, &va, PyBUF_SIMPLE) != 0 ||
+        PyObject_GetBuffer(b, &vb, PyBUF_SIMPLE) != 0) {
+        PyErr_Format(PyExc_TypeError, "can't concat %.100s to %.100s",
+                     Py_TYPE(b)->tp_name, Py_TYPE(a)->tp_name);
+        goto done;
+    }
+
+    /* Optimize end cases */
+    if (va.len == 0 && PyBytes_CheckExact(b)) {
+        result = b;
+        Py_INCREF(result);
+        goto done;
+    }
+    if (vb.len == 0 && PyBytes_CheckExact(a)) {
+        result = a;
+        Py_INCREF(result);
+        goto done;
+    }
+
+    if (va.len > PY_SSIZE_T_MAX - vb.len) {
+        PyErr_NoMemory();
+        goto done;
+    }
+    result = PyBytes_FromStringAndSize(NULL, va.len + vb.len);
+    if (result != NULL) {
+        memcpy(PyBytes_AS_STRING(result), va.buf, va.len);
+        memcpy(PyBytes_AS_STRING(result) + va.len, vb.buf, vb.len);
+    }
+
+  done:
+    if (va.len != -1)
+        PyBuffer_Release(&va);
+    if (vb.len != -1)
+        PyBuffer_Release(&vb);
+    return result;
+}
+```
+
+```c
+#define PyBytes_AS_STRING(op) (assert(PyBytes_Check(op)), \
+                                (((PyBytesObject *)(op))->ob_sval))
+```
+
+我们修改一个这个函数，在其中加入一条打印语句，然后重新编译 python 执行结果如下所示：
+
+![30-bytes](../images/30-bytes.png)
+
+```python
+Python 3.9.0b1 (default, Mar 23 2023, 08:35:33) 
+[GCC 4.8.5 20150623 (Red Hat 4.8.5-44)] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+>>> b"abc" + b"edf"
+In concat function: abc <> edf
+b'abcedf'
+>>> 
+```
+
