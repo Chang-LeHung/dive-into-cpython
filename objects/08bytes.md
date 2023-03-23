@@ -143,6 +143,8 @@ bytes_concat(PyObject *a, PyObject *b)
 
     va.len = -1;
     vb.len = -1;
+    // Py_buffer 当中有一个指针字段 buf 可以用户保存 PyBytesObject 当中字节数据的首地址
+    // PyObject_GetBuffer 函数的主要作用是将 对象 a 当中的字节数组赋值给 va 当中的 buf
     if (PyObject_GetBuffer(a, &va, PyBUF_SIMPLE) != 0 ||
         PyObject_GetBuffer(b, &vb, PyBUF_SIMPLE) != 0) {
         PyErr_Format(PyExc_TypeError, "can't concat %.100s to %.100s",
@@ -167,7 +169,10 @@ bytes_concat(PyObject *a, PyObject *b)
         goto done;
     }
     result = PyBytes_FromStringAndSize(NULL, va.len + vb.len);
+    // 下方就是将对象 a b 当中的字节数据拷贝到新的
     if (result != NULL) {
+        // PyBytes_AS_STRING 宏定义在下方当中 主要就是使用 PyBytesObject 对象当中的
+        // ob_sval 字段 也就是将 buf 数据（也就是 a 或者 b 当中的字节数据）拷贝到 ob_sval当中
         memcpy(PyBytes_AS_STRING(result), va.buf, va.len);
         memcpy(PyBytes_AS_STRING(result) + va.len, vb.buf, vb.len);
     }
@@ -200,3 +205,4 @@ b'abcedf'
 >>> 
 ```
 
+## 
