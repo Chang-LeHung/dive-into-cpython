@@ -45,8 +45,61 @@ typedef struct {
 
 在新的字典当中 cpython 对于 dk_entries 来说如果正常的哈希表的长度为 8 的话，因为负载因子是 $\frac{2}{3}$ 真正给 dk_entries 分配的长度是 5 = 8 / 3，那么现在有一个问题就是如何根据不同的哈希值进行对象的存储。dk_indices 就是这个作用的，他的长度和真正的哈希表的长度是一样的，dk_indices 是一个整型数组这个数组保存的是要保存对象在 dk_entries 当中的下标，比如在上面的例子当中 dk_indices[7] = 0，就表示哈希值求余数之后的值等于 7，0 表示对象在 dk_entries 当中的下标。
 
-现在我们再插入一个数据 "World" "Hello" 键值对，假设 "World" 的哈希值等于 8，那么对哈希值求余数之后等于 0 ，那么 dk_indices[0] 就是保存对象在 dk_entries 数组当中的下标的，图中对应的下标为 1 （因为 dk_entries 数组当中的每个数据都要使用，因此直接递增即可，下一个对象来的话就保存在 dk_entries 数组的第 2 个位置）。
+现在我们再插入一个数据 "World" "Hello" 键值对，假设 "World" 的哈希值等于 8，那么对哈希值求余数之后等于 0 ，那么 dk_indices[0] 就是保存对象在 dk_entries 数组当中的下标的，图中对应的下标为 1 （因为 dk_entries 数组当中的每个数据都要使用，因此直接递增即可，下一个对象来的话就保存在 dk_entries 数组的第 3 个（下标为 2）位置）。
 
 
 
 ![33-dict](../images/34-dict.png)
+
+## 内存分析
+
+首先我们先来分析一下数组 dk_indices 的数据类型，在 cpython 的内部实现当中并没有一刀切的直接将这个数组当中的数据类型设置成 int 类型。
+
+dk_indices 数组主要有以下几个类型：
+
+- 当哈希表长度小于 0xff 时，dk_indices 的数据类型为 int8_t ，即一个元素值占一个字节。
+- 当哈希表长度小于 0xffff 时，dk_indices 的数据类型为 int16_t ，即一个元素值占 2 一个字节。
+- 当哈希表长度小于 0xffffffff 时，dk_indices 的数据类型为 int32_t ，即一个元素值占 4 个字节。
+- 当哈希表长度大于 0xffffffff 时，dk_indices 的数据类型为 int64_t ，即一个元素值占 8 个字节。
+
+与这个相关的代码如下所示：
+
+```c
+/* lookup indices.  returns DKIX_EMPTY, DKIX_DUMMY, or ix >=0 */
+static inline Py_ssize_t
+dictkeys_get_index(const PyDictKeysObject *keys, Py_ssize_t i)
+{
+    Py_ssize_t s = DK_SIZE(keys);
+    Py_ssize_t ix;
+
+    if (s <= 0xff) {
+        const int8_t *indices = (const int8_t*)(keys->dk_indices);
+        ix = indices[i];
+    }
+    else if (s <= 0xffff) {
+        const int16_t *indices = (const int16_t*)(keys->dk_indices);
+        ix = indices[i];
+    }
+#if SIZEOF_VOID_P > 4
+    else if (s > 0xffffffff) {
+        const int64_t *indices = (const int64_t*)(keys->dk_indices);
+        ix = indices[i];
+    }
+#endif
+    else {
+        const int32_t *indices = (const int32_t*)(keys->dk_indices);
+        ix = indices[i];
+    }
+    assert(ix >= DKIX_DUMMY);
+    return ix;
+}
+```
+
+现在来分析一下相关的内存使用情况：
+
+| **哈希表长度** | 能够保存的键值对数目  | **老版本**           | **新版本**                       | **节约内存量（字节）** |
+| :------------- | :-------------------- | :------------------- | :------------------------------- | :--------------------- |
+| 8              | 8 * 2 / 3 = 5         | 24 * 8 = 192         | 1 * 8 + 24 * 5 = 128             | 64                     |
+| 256            | 256 * 2 / 3 = 170     | 24 * 256 = 6144      | 1 * 256 + 24 * 170 = 4336        | 1808                   |
+| 65536          | 65536 * 2 / 3 = 43690 | 24 * 65536 = 1572864 | 2 * 65536 + 24 * 43690 = 1179632 | 393232                 |
+
