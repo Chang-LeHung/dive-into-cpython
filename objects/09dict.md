@@ -35,11 +35,14 @@ typedef struct {
 
 ![31-bytes](../images/31-bytes.png)
 
-所有的键值对都存储在 dk_entries 数组当中，比如对于 "Hello" "World" 这个键值对存储过程如下所示：
+所有的键值对都存储在 dk_entries 数组当中，比如对于 "Hello" "World" 这个键值对存储过程如下所示，如果 "Hello" 的哈希值等于 8 ，那么计算出来对象在 dk_entries 数组当中的下标位 0 。
 
 ![32-dict](../images/32-dict.png)
 
 在前面的文章当中我们谈到了，在 cpython 当中 dk_entries 数组当中的一个对象占用 24 字节的内存空间，在 cpython 当中的负载因子是 $\frac{2}{3}$ 。而一个 entry 的大小是 24 个字节，如果 dk_entries 的长度是 1024 的话，那么大概有 1024  / 3 * 24 = 8K 的内存空间是浪费的。为了解决这个问题，在新版的 cpython 当中采取了一个策略用于减少内存的使用。具体的设计如下图所示：
 
+![33-dict](../images/33-dict.png)
 
 
+
+![33-dict](../images/34-dict.png)
