@@ -89,7 +89,7 @@ pyc 文件的十六进制形式如下所示：
 
 下面是一个小的代码片段用于读取 pyc 文件的头部元信息：
 
-```c
+```python
 import struct
 import time
 import binascii
