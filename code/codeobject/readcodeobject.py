@@ -33,7 +33,7 @@ def show_code(code, indent=''):
             show_code(const, indent+'   ')
         else:
             print("   %s%r" % (indent, const))
-    print ("%snames %r" % (indent, code.co_names))
+    print("%snames %r" % (indent, code.co_names))
     print("%svarnames %r" % (indent, code.co_varnames))
     print("%sfreevars %r" % (indent, code.co_freevars))
     print("%scellvars %r" % (indent, code.co_cellvars))
