@@ -35,3 +35,6 @@ demo.cpython-310.pyc  hello.cpython-310.pyc
 
 `python -m compileall .` 命令将递归扫描当前目录下面的 py 文件，并且生成对应文件的 pyc 文件。
 
+## pyc 文件布局
+
+![36-pyc](../images/36-pyc.png)
