@@ -43,11 +43,11 @@ demo.cpython-310.pyc  hello.cpython-310.pyc
 
 ![37-pyc](../images/37-pyc.png)
 
-第一部分是一个 2 字节的整数，第二部分是两个字符 "\r\n" 也占用两个字节，一共是四个字节。这个两个字节的整数在不同的 python 版本还不一样，比如说在 python3.5 当中这个值为 3351 等值，在 python3.9 当中这个值为 3420，3421，3422，3423，3424等值（在 python 3.9 的小版本）。
+第一部分 魔术是由一个 2 字节的整数和另外两个字符回车换行组成的， "\r\n" 也占用两个字节，一共是四个字节。这个两个字节的整数在不同的 python 版本还不一样，比如说在 python3.5 当中这个值为 3351 等值，在 python3.9 当中这个值为 3420，3421，3422，3423，3424等值（在 python 3.9 的小版本）。
 
-第二部分 Bit Field 这个字段的主要作用是为了将来能够实现复现编译结果，但是在 python3.9a2 时，这个字段的值还全部是 0 。
+第二部分 Bit Field 这个字段的主要作用是为了将来能够实现复现编译结果，但是在 python3.9a2 时，这个字段的值还全部是 0 。详细内容可以参考 [PEP552-Deterministic pycs](https://peps.python.org/pep-0552/) 。
 
-第三部分 就是整个 pyc 文件的大小了。
+第三部分 就是整个 py  源文件的大小了。
 
 第四部分 也是整个 pyc 文件当中最重要的一个部分，最后一个部分就是一个 CodeObject 对象序列化之后的数据，我们稍后再来仔细分析一下这个对象相关的数据。
 
@@ -78,5 +78,44 @@ pyc 文件的十六进制形式如下所示：
 000000c0  6d 6f 64 75 6c 65 3e 01  00 00 00 73 02 00 00 00  |module>....s....|
 000000d0  0c 00                                             |..|
 000000d2
+```
+
+因为数据使用小端表示方式，因此对于上面的数据来说：
+
+- 第一部分魔数为：0xa0d0d6f 。
+- 第二部分 Bit Field 为：0x0 。
+- 第三部分最后一次修改日期为：0x642148b9 。
+- 第四部分文件大小为：0x20 字节，也就是说 hello.py 这个文件的大小是 32 字节。
+
+下面是一个小的代码片段用于读取 pyc 文件的头部元信息：
+
+```c
+import struct
+import time
+import binascii
+
+
+fname = "./__pycache__/hello.cpython-310.pyc"
+f = open(fname, "rb")
+magic = struct.unpack('<l', f.read(4))[0]
+bit_filed = f.read(4)
+print(f"bit field = {binascii.hexlify(bit_filed)}")
+moddate = f.read(4)
+filesz = f.read(4)
+modtime = time.asctime(time.localtime(struct.unpack('<l', moddate)[0]))
+filesz = struct.unpack('<L', filesz)
+print("magic %s" % (hex(magic)))
+print("moddate (%s)" % (modtime))
+print("File Size %d" % filesz)
+f.close()
+```
+
+上面的代码输出结果如下所示：
+
+```bash
+bit field = b'00000000'
+magic 0xa0d0d6f
+moddate (Mon Mar 27 15:41:45 2023)
+File Size 32
 ```
 
