@@ -45,7 +45,7 @@ demo.cpython-310.pyc  hello.cpython-310.pyc
 
 第一部分 魔术是由一个 2 字节的整数和另外两个字符回车换行组成的， "\r\n" 也占用两个字节，一共是四个字节。这个两个字节的整数在不同的 python 版本还不一样，比如说在 python3.5 当中这个值为 3351 等值，在 python3.9 当中这个值为 3420，3421，3422，3423，3424等值（在 python 3.9 的小版本）。
 
-第二部分 Bit Field 这个字段的主要作用是为了将来能够实现复现编译结果，但是在 python3.9a2 时，这个字段的值还全部是 0 。详细内容可以参考 [PEP552-Deterministic pycs](https://peps.python.org/pep-0552/) 。
+第二部分 Bit Field 这个字段的主要作用是为了将来能够实现复现编译结果，但是在 python3.9a2 时，这个字段的值还全部是 0 。详细内容可以参考 [PEP552-Deterministic pycs](https://peps.python.org/pep-0552/) 。这个字段在 python2 和 python3 早期版本并没有（python3.5 还没有），在 python3 的后期版本这个字段才出现的。
 
 第三部分 就是整个 py  源文件的大小了。
 
