@@ -37,7 +37,7 @@ demo.cpython-310.pyc  hello.cpython-310.pyc
 
 ## pyc 文件布局
 
-![36-pyc](../images/36-pyc.png)
+![36-pyc](../images/38-pyc.png)
 
 第一部分魔数由两部分组成：
 
