@@ -119,3 +119,10 @@ moddate (Mon Mar 27 15:41:45 2023)
 File Size 32
 ```
 
+## CodeObject
+
+在 CPython 中，`CodeObject` 是一个对象，它包含了 Python 代码的字节码、常量、变量、位置参数、关键字参数等信息，以及一些用于运行代码的元数据，如文件名、代码行号等。
+
+在 CPython 中，当我们执行一个 Python 模块或函数时，解释器会先将其代码编译为 `CodeObject`，然后再执行。在编译过程中，解释器会将 Python 代码转换为字节码，并将其保存在 `CodeObject` 对象中。此后，每当我们调用该模块或函数时，解释器都会使用 `CodeObject` 中的字节码来执行代码。
+
+`CodeObject` 对象是不可变的，一旦创建就不能被修改。这是因为 Python 代码的字节码是不可变的，而 `CodeObject` 对象包含了这些字节码，所以也是不可变的。
