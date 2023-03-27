@@ -1,6 +1,6 @@
-
 import re
 import sys
+import os
 
 if len(sys.argv) != 3:
     print("please pass build directory as a argument & path to compile log filename")
@@ -20,7 +20,7 @@ print("[")
 for (idx, cmd) in enumerate(compile_commands):
     filename = re.findall(r"\s([^\s]+\.c)", cmd)[0]
     print("\t{")
-    print('\t\t"directory":', sys.argv[1] + ",")
+    print('\t\t"directory":', "\"" + os.path.abspath(sys.argv[1]) + "\",")
     print('\t\t"command": "' + cmd + '",')
     print('\t\t"file": "' + filename + '"')
     if idx == len(compile_commands) - 1:
@@ -29,4 +29,3 @@ for (idx, cmd) in enumerate(compile_commands):
         print("\t},")
 
 print("]")
-
