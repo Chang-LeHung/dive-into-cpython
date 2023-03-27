@@ -2,3 +2,4 @@ build/*
 *.so
 *.o
 *.json
+*idea*/*
