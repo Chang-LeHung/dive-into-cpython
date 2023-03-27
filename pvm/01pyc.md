@@ -10,3 +10,28 @@ Python 是一种解释型语言，它不像编译型语言那样将源代码直�
 
 当 Python 解释器首次执行一个 .py 文件时，它会在同一目录下生成一个对应的 .pyc 文件，以便于下次加载该文件时可以更快地执行。如果源文件在修改之后被重新加载，解释器会重新生成 .pyc 文件以更新缓存的字节码。
 
+## 生成 pyc 文件
+
+正常的 python 文件需要通过编译器变成字节码，然后将字节码交给 python 虚拟机，然后 python 虚拟机会执行字节码。整体流程如下所示：
+
+![35-pyc](../images/35-pyc.png)
+
+我们可以直接使用 compile all 模块生成对应文件的 pyc 文件。
+
+```bash
+➜  pvm ls
+demo.py  hello.py
+➜  pvm python -m compileall .
+Listing '.'...
+Listing './.idea'...
+Listing './.idea/inspectionProfiles'...
+Compiling './demo.py'...
+Compiling './hello.py'...
+➜  pvm ls
+__pycache__ demo.py     hello.py
+➜  pvm ls __pycache__ 
+demo.cpython-310.pyc  hello.cpython-310.pyc
+```
+
+`python -m compileall .` 命令将递归扫描当前目录下面的 py 文件，并且生成对应文件的 pyc 文件。
+
