@@ -12,5 +12,9 @@
 - [深入理解 Python 虚拟机：字节（bytes）的实现原理及源码剖析](objects/08bytes.md)
 - [深入理解 Python 虚拟机：字典（dict）的优化](objects/09dict.md)
 
+## 虚拟机
+
+- [深入理解 Python 虚拟机：pyc 文件结构](pvm/01pyc.md)
+
 ## 给 cpython 添加 C 扩展模块
 
