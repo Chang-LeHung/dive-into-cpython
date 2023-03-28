@@ -267,7 +267,15 @@ code
 - co_stackszie，因为 python 虚拟机是一个栈式计算机，这个参数的值表示这个栈需要的最大的值。
 - co_cellvars，co_freevars，这两个字段主要和嵌套函数和函数闭包有关，我们在后续的文章当中将详细解释这个字段。
 
-
-
 ## 总结
+
+在本篇文章当中主要给大家介绍了 python 文件被编译之后的结果文件 .pyc 文件结构，在 pyc 文件当中一个最重要的结构就是 code object 对象，在本篇文章当中主要是简单介绍了 code object 各个字段的作用。在后续的文章当中将会举详细的例子进行说明，正确理解这些这些字段的含义，对于我们理解 python 虚拟机大有裨益。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
 
