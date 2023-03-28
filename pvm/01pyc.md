@@ -263,3 +263,11 @@ code
 - co_varnames，这个字段的主要含义是表示在一个 code object 本地定义的一个名字。
 - co_names，和 co_varnames 相反，表示非本地定义但是在 code object 当中使用的名字。
 
+- co_nlocals，这个字段表示在一个 code object 当中本地使用的变量个数。
+- co_stackszie，因为 python 虚拟机是一个栈式计算机，这个参数的值表示这个栈需要的最大的值。
+- co_cellvars，co_freevars，这两个字段主要和嵌套函数和函数闭包有关，我们在后续的文章当中将详细解释这个字段。
+
+
+
+## 总结
+
