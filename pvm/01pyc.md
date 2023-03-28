@@ -119,6 +119,8 @@ moddate (Mon Mar 27 15:41:45 2023)
 File Size 32
 ```
 
+有关 pyc 文件的详细操作可以查看 python 标准库 importlib/_bootstrap_external.py 文件源代码。
+
 ## CodeObject
 
 在 CPython 中，`CodeObject` 是一个对象，它包含了 Python 代码的字节码、常量、变量、位置参数、关键字参数等信息，以及一些用于运行代码的元数据，如文件名、代码行号等。
@@ -127,7 +129,19 @@ File Size 32
 
 `CodeObject` 对象是不可变的，一旦创建就不能被修改。这是因为 Python 代码的字节码是不可变的，而 `CodeObject` 对象包含了这些字节码，所以也是不可变的。
 
-在本篇文章当中主要介绍 code object 当中主要的内容，以及他们的作用，在后续的文章当中会仔细分析 code object 对应的源代码以及对应的字段的详细作用。
+在本篇文章当中主要介绍 code object 当中主要的内容，以及简单介绍他们的作用，在后续的文章当中会仔细分析 code object 对应的源代码以及对应的字段的详细作用。
+
+现在举一个例子来分析一下 pycdemo.py 的 pyc 文件，pycdemo.py 的源程序如下所示：
+
+```python
+
+
+if __name__ == '__main__':
+    a = 100
+    print(a)
+```
+
+下面的代码是一个用于加载 pycdemo01.cpython-39.pyc 文件（也就是 hello.py 对应的 pyc 文件）的代码，使用 marshal 读取 pyc 文件里面的 code object 。
 
 ```python
 
@@ -165,7 +179,7 @@ def show_code(code, indent=''):
             show_code(const, indent+'   ')
         else:
             print("   %s%r" % (indent, const))
-    print ("%snames %r" % (indent, code.co_names))
+    print("%snames %r" % (indent, code.co_names))
     print("%svarnames %r" % (indent, code.co_varnames))
     print("%sfreevars %r" % (indent, code.co_freevars))
     print("%scellvars %r" % (indent, code.co_cellvars))
@@ -186,10 +200,66 @@ def show_hex(label, h, indent):
 
 
 if __name__ == '__main__':
-    filename = "./__pycache__/hello.cpython-39.pyc"
+    filename = "./__pycache__/pycdemo01.cpython-39.pyc"
     with open(filename, "rb") as fp:
         print_metadata(fp)
         code_object = marshal.load(fp)
         show_code(code_object)
 ```
+
+执行上面的程序输出结果如下所示：
+
+```bash
+magic number = 0xa0d0d61
+bit filed = 0
+time = Tue Mar 28 02:40:20 2023
+file size = 54
+code
+   argcount 0
+   nlocals 0
+   stacksize 2
+   flags 0040
+   code b'650064006b02721464015a01650265018301010064025300'
+  3           0 LOAD_NAME                0 (__name__)
+              2 LOAD_CONST               0 ('__main__')
+              4 COMPARE_OP               2 (==)
+              6 POP_JUMP_IF_FALSE       20
+
+  4           8 LOAD_CONST               1 (100)
+             10 STORE_NAME               1 (a)
+
+  5          12 LOAD_NAME                2 (print)
+             14 LOAD_NAME                1 (a)
+             16 CALL_FUNCTION            1
+             18 POP_TOP
+        >>   20 LOAD_CONST               2 (None)
+             22 RETURN_VALUE
+   consts
+      '__main__'
+      100
+      None
+   names ('__name__', 'a', 'print')
+   varnames ()
+   freevars ()
+   cellvars ()
+   filename './pycdemo01.py'
+   name '<module>'
+   firstlineno 3
+   lnotab b'08010401'
+```
+
+下面是 code object 当中各个字段的作用：
+
+- 首先需要了解一下代码块这个概念，所谓代码块就是一个小的 python 代码，被当做一个小的单元整体执行。在 python 当中常见的代码块块有：函数体、类的定义、一个模块。
+
+- argcount，这个表示一个代码块的参数个数，这个参数只对函数体代码块有用，因为函数可能会有参数，比如上面的 pycdemo.py 是一个模块而不是一个函数，因此这个参数对应的值为 0 。
+- co_code，这个对象的具体内容就是一个字节序列，存储真实的 python 字节码，主要是用于 python 虚拟机执行的，在本篇文章当中暂时不详细分析。
+- co_consts，这个字段是一个列表类型的字段，主要是包含一些字符串常量和数值常量，比如上面的 "\_\_main\_\_" 和 100 。
+- co_filename，这个字段的含义就是对应的源文件的文件名。
+- co_firstlineno，这个字段的含义为在 python 源文件当中第一行代码出现的行数，这个字段在进行调试的时候非常重要。
+- co_flags，这个字段的主要含义就是标识这个 code object 的类型。0x0080 表示这个 block 是一个协程，0x0010 表示这个 code object 是嵌套的等等。
+
+- co_lnotab，这个字段的含义主要是用于计算每个字节码指令对应的源代码行数。
+- co_varnames，这个字段的主要含义是表示在一个 code object 本地定义的一个名字。
+- co_names，和 co_varnames 相反，表示非本地定义但是在 code object 当中使用的名字。
 

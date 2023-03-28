@@ -24,7 +24,7 @@ def show_code(code, indent=''):
     print ("%sargcount %d" % (indent, code.co_argcount))
     print ("%snlocals %d" % (indent, code.co_nlocals))
     print ("%sstacksize %d" % (indent, code.co_stacksize))
-    print ("%sflags %04x" % (indent, code.co_flags))
+    print ("%sflags %04x" % (indent, code.co_flags), hex(code.co_flags))
     show_hex("code", code.co_code, indent=indent)
     dis.disassemble(code)
     print ("%sconsts" % indent)
