@@ -53,3 +53,63 @@ typedef struct {
 - co_nlocals，这个字段表示在一个 code object 当中本地使用的变量个数。
 - co_stackszie，因为 python 虚拟机是一个栈式计算机，这个参数的值表示这个栈需要的最大的值。
 - co_cellvars，co_freevars，这两个字段主要和嵌套函数和函数闭包有关，我们在后续的文章当中将详细解释这个字段。
+
+## 	CodeObject 详细分析
+
+现在我们使用一些实际的例子来分析具体的 code object 。
+
+```python
+import dis
+import binascii
+import types
+
+d = 10
+
+
+def test_co01(c):
+    a = 1
+    b = 2
+    return a + b + c + d
+```
+
+在前面的文章当中我们提到过一个函数是一个 code object 对象，test_co01 的 code object 对象的输出结果如下所示：
+
+```bash
+code
+   argcount 1
+   nlocals 3
+   stacksize 2
+   flags 0043 0x43
+   code b'6401007d01006402007d02007c01007c0200177c0000177400001753'
+  9           0 LOAD_CONST               1 (1)
+              3 STORE_FAST               1 (a)
+
+ 10           6 LOAD_CONST               2 (2)
+              9 STORE_FAST               2 (b)
+
+ 11          12 LOAD_FAST                1 (a)
+             15 LOAD_FAST                2 (b)
+             18 BINARY_ADD
+             19 LOAD_FAST                0 (c)
+             22 BINARY_ADD
+             23 LOAD_GLOBAL              0 (d)
+             26 BINARY_ADD
+             27 RETURN_VALUE
+   consts
+      None
+      1
+      2
+   names ('d',)
+   varnames ('c', 'a', 'b')
+   freevars ()
+   cellvars ()
+   filename '/tmp/pycharm_project_396/co01.py'
+   name 'test_co01'
+   firstlineno 8
+   lnotab b'000106010601'
+```
+
+- 字段 argcount 的值等于 1，说明函数有一个参数，这个函数 test_co01 有一个参数 c 是相互对应的。
+- 字段 nlocals 的值等于 3，说明在函数 test_co01 当中一个一共实现了三个函数本地变量 a, b, c 。
+- 
+
