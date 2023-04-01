@@ -1,6 +1,6 @@
 # 深入理解 python 虚拟机：字节码灵魂——Code obejct
 
-在本篇文章当中主要给大家深入介绍在 cpython 当中非常重要的一个数据结构 code object! 在上一篇文章 [深入理解 python 虚拟机：pyc 文件结构](https://mp.weixin.qq.com/s?__biz=Mzg3ODgyNDgwNg==&mid=2247488040&idx=1&sn=665b5b6080d5ec7910f586b252281bcf&chksm=cf0c8e21f87b073748c82af61a5c7c9d73bca95e5b6558d50d1d5b1cc97e50c4a93d9daffcfa&token=1257007364&lang=zh_CN#rd) ，我们简单介绍了一下在 code object 当中有哪些字段以及这些字段的简单含义。
+在本篇文章当中主要给大家深入介绍在 cpython 当中非常重要的一个数据结构 code object! 在上一篇文章 [深入理解 python 虚拟机：pyc 文件结构](https://mp.weixin.qq.com/s?__biz=Mzg3ODgyNDgwNg==&mid=2247488040&idx=1&sn=665b5b6080d5ec7910f586b252281bcf&chksm=cf0c8e21f87b073748c82af61a5c7c9d73bca95e5b6558d50d1d5b1cc97e50c4a93d9daffcfa&token=1257007364&lang=zh_CN#rd) ，我们简单介绍了一下在 code object 当中有哪些字段以及这些字段的简单含义，在本篇文章当中将会举一些例子以便更加深入理解这些字段。
 
 ## Code Object 数据结构
 
@@ -309,3 +309,20 @@ code
 - BINARY_ADD，这个字节码指令是将栈空间的两个栈顶元素弹出，然后将两个数据进行相加操作，然后将相加得到的结果重新压入栈中。
 
 ![39-codeobject](../images/44-codeobject.png)
+
+- RETURN_VALUE，将栈顶元素弹出并且作为返回值返回。
+
+从上面的整个执行过程来看整个栈空间使用的最大的空间长度为 2 ，因此 stacksize = 2 。
+
+## 总结
+
+在本篇文章当中主要分析了一些 code obejct 当中比较重要的字段，code object 是 cpython 虚拟机当中一个比较重要的数据结构，深入的去理解这里面的字段对于我们理解 python 虚拟机非常有帮助。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
