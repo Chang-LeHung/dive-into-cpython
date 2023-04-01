@@ -1,4 +1,4 @@
-# 深入理解 python 虚拟机：Code obejct
+# 深入理解 python 虚拟机：字节码灵魂——Code obejct
 
 在本篇文章当中主要给大家深入介绍在 cpython 当中非常重要的一个数据结构 code object! 在上一篇文章 [深入理解 python 虚拟机：pyc 文件结构](https://mp.weixin.qq.com/s?__biz=Mzg3ODgyNDgwNg==&mid=2247488040&idx=1&sn=665b5b6080d5ec7910f586b252281bcf&chksm=cf0c8e21f87b073748c82af61a5c7c9d73bca95e5b6558d50d1d5b1cc97e50c4a93d9daffcfa&token=1257007364&lang=zh_CN#rd) ，我们简单介绍了一下在 code object 当中有哪些字段以及这些字段的简单含义。
 
@@ -150,4 +150,96 @@ code
 
 - **CO_VARARGS**，表示这个 code object 对象是否含有位置参数。
 - **CO_VARKEYWORDS**，表示这个 code object 是否含有关键字参数。
+- **CO_NESTED**，表示这个 code object 是一个嵌套函数。
+- **CO_GENERATOR**，表示这个 code object 是一个生成器。
+- **CO_COROUTINE**，表示这个 code object 是一个协程函数。
+- **CO_ITERABLE_COROUTINE**，表示 code object 是一个可迭代的协程函数。
+- **CO_NOFREE**，这个表示没有 freevars 和 cellvars，即没有函数闭包。
+
+现在再分析一下前面的函数 test_co01 的 flags，他对应的值等于 0x43，则说明这个函数满足三个特性分别是 CO_NEWLOCALS，CO_OPTIMIZED 和 CO_NOFREE。
+
+### freevars & cellvars
+
+我们使用下面的函数来对这两个字段进行分析：
+
+```python
+def test_co02():
+    a = 1
+    b = 2
+
+    def g():
+        return a + b
+    return a + b + g()
+```
+
+上面的函数的信息如下所示（完整代码见[co02](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/code/codeobject/co01.py)）：
+
+```bash
+code
+   argcount 0
+   nlocals 1
+   stacksize 3
+   flags 0003 0x3
+   code
+      b'640100890000640200890100870000870100660200640300640400860000'
+      b'7d0000880000880100177c00008300001753'
+ 15           0 LOAD_CONST               1 (1)
+              3 STORE_DEREF              0 (a)
+
+ 16           6 LOAD_CONST               2 (2)
+              9 STORE_DEREF              1 (b)
+
+ 18          12 LOAD_CLOSURE             0 (a)
+             15 LOAD_CLOSURE             1 (b)
+             18 BUILD_TUPLE              2
+             21 LOAD_CONST               3 (<code object g at 0x7f133ff496f0, file "/tmp/pycharm_project_396/co01.py", line 18>)
+             24 LOAD_CONST               4 ('test_co02.<locals>.g')
+             27 MAKE_CLOSURE             0
+             30 STORE_FAST               0 (g)
+
+ 20          33 LOAD_DEREF               0 (a)
+             36 LOAD_DEREF               1 (b)
+             39 BINARY_ADD
+             40 LOAD_FAST                0 (g)
+             43 CALL_FUNCTION            0 (0 positional, 0 keyword pair)
+             46 BINARY_ADD
+             47 RETURN_VALUE
+   consts
+      None
+      1
+      2
+      code
+         argcount 0
+         nlocals 0
+         stacksize 2
+         flags 0013 0x13
+         code b'8800008801001753'
+ 19           0 LOAD_DEREF               0 (a)
+              3 LOAD_DEREF               1 (b)
+              6 BINARY_ADD
+              7 RETURN_VALUE
+         consts
+            None
+         names ()
+         varnames ()
+         freevars ('a', 'b')
+         cellvars ()
+         filename '/tmp/pycharm_project_396/co01.py'
+         name 'g'
+         firstlineno 18
+         lnotab b'0001'
+      'test_co02.<locals>.g'
+   names ()
+   varnames ('g',)
+   freevars ()
+   cellvars ('a', 'b')
+   filename '/tmp/pycharm_project_396/co01.py'
+   name 'test_co02'
+   firstlineno 14
+   lnotab b'0001060106021502'
+```
+
+从上面的输出我们可以看到的是，函数 test_co02 的 cellvars 为 ('a', 'b')，函数 g 的 freevars 为 ('a', 'b')，cellvars 表示在其他函数当中会使用本地定义的变量，freevars 表示本地会使用其他函数定义的变量。
+
+再来分析一下函数 test_co02 的 flags，他的 flags 等于 0x3 因为有闭包的存在因此 flags 不会存在 CO_NOFREE，也就是少了值 0x0040 。
 
