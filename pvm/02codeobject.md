@@ -141,5 +141,13 @@ code
 #define CO_ITERABLE_COROUTINE   0x0100
 ```
 
+如果 flags 字段和上面的各个宏定义进行 & 运算，如果得到的结果大于 0，则说明符合对应的条件。
 
+上面的宏定义的含义如下所示：
+
+- **CO_OPTIMIZED**，这个字段表示 code object 是被优化过的，使用函数本地定义的变量。
+- **CO_NEWLOCALS**，这个字段的含义为当这个 code object 的代码被执行的时候会给栈帧当中的 f_locals 对象创建一个 dict 对象。
+
+- **CO_VARARGS**，表示这个 code object 对象是否含有位置参数。
+- **CO_VARKEYWORDS**，表示这个 code object 是否含有关键字参数。
 
