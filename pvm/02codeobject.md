@@ -243,3 +243,69 @@ code
 
 再来分析一下函数 test_co02 的 flags，他的 flags 等于 0x3 因为有闭包的存在因此 flags 不会存在 CO_NOFREE，也就是少了值 0x0040 。
 
+### stacksize
+
+这个字段存储的是在函数在被虚拟机执行的时候所需要的最大的栈空间的大小，这也是一种优化手段，因为在知道所需要的最大的栈空间，所以可以在函数执行的时候直接分配指定大小的空间不需要在函数执行的时候再去重新扩容。
+
+```python
+def test_stack():
+    a = 1
+    b = 2
+    return a + b
+```
+
+上面的代码相关字节码等信息如下所示：
+
+```bash
+code
+   argcount 0
+   nlocals 2
+   stacksize 2
+   flags 0043 0x43
+   code b'6401007d00006402007d01007c00007c01001753'
+   #					  字节码指令		 # 字节码指令参数 # 参数对应的值
+ 24           0 LOAD_CONST               1 (1)
+              3 STORE_FAST               0 (a)
+
+ 25           6 LOAD_CONST               2 (2)
+              9 STORE_FAST               1 (b)
+
+ 26          12 LOAD_FAST                0 (a)
+             15 LOAD_FAST                1 (b)
+             18 BINARY_ADD
+             19 RETURN_VALUE
+   consts
+      None # 下标等于 0 的常量
+      1 	 # 下标等于 1 的常量
+      2		 # 下标等于 2 的常量
+   names ()
+   varnames ('a', 'b')
+   freevars ()
+   cellvars ()
+```
+
+我们现在来模拟一下执行过程，在模拟之前我们首先来了解一下上面几条字节码的作用：
+
+- LOAD_CONST，将常量表当中的下标等于 i 个对象加载到栈当中，对应上面的代码  LOAD_CONST 的参数 i = 1。因此加载测常量等于 1 。因此现在栈空间如下所示：
+
+![39-codeobject](../images/39-codeobject.png)
+
+- STORE_FAST，将栈顶元素弹出并且保存到 co_varnames 对应的下标当中，根据上面的字节码参数等于 0 ，因此将 1 保存到 co_varnames[0] 对应的对象当中。
+
+![39-codeobject](../images/40-codeobject.png)
+
+- LOAD_CONST，将下标等于 2 的常量加载进入栈中。
+
+![39-codeobject](../images/41-codeobject.png)
+
+- STORE_FAST，将栈顶元素弹出，并且保存到 varnames 下标为 1 的对象。
+
+![39-codeobject](../images/42-codeobject.png)
+
+- LOAD_FAST，是取出 co_varnames 对应下标的数据，并且将其压入栈中。我们直接连续执行两个 LOAD_FAST 之后栈空间的布局如下：
+
+![39-codeobject](../images/43-codeobject.png)
+
+- BINARY_ADD，这个字节码指令是将栈空间的两个栈顶元素弹出，然后将两个数据进行相加操作，然后将相加得到的结果重新压入栈中。
+
+![39-codeobject](../images/44-codeobject.png)

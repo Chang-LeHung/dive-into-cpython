@@ -11,6 +11,22 @@ def test_co01(c):
     return a + b + c + d
 
 
+def test_co02():
+    a = 1
+    b = 2
+
+    def g():
+        return a + b
+    return a + b + g()
+
+
+def test_stack():
+    a = 1
+    b = 2
+    return a + b
+
+
+
 def show_code(code, indent=''):
     print ("%scode" % indent)
     indent += '   '
@@ -47,4 +63,4 @@ def show_hex(label, h, indent):
 
 
 if __name__ == '__main__':
-    show_code(test_co01.__code__)
+    show_code(test_stack.__code__)
