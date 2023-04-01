@@ -15,6 +15,7 @@
 ## 虚拟机
 
 - [深入理解 Python 虚拟机：pyc 文件结构](pvm/01pyc.md)
+- [深入理解 Python 虚拟机：Code Object](pvm/02codeobject.md)
 
 ## 给 cpython 添加 C 扩展模块
 
