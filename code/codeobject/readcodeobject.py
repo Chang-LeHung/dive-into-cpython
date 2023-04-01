@@ -54,7 +54,7 @@ def show_hex(label, h, indent):
 
 
 if __name__ == '__main__':
-    filename = "./__pycache__/hello.cpython-39.pyc"
+    filename = "./__pycache__/co01.cpython-39.pyc"
     with open(filename, "rb") as fp:
         print_metadata(fp)
         code_object = marshal.load(fp)
