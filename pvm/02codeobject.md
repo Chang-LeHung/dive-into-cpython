@@ -72,7 +72,7 @@ def test_co01(c):
     return a + b + c + d
 ```
 
-在前面的文章当中我们提到过一个函数是一个 code object 对象，test_co01 的 code object 对象的输出结果如下所示：
+在前面的文章当中我们提到过一个函数是包括一个 code object 对象，test_co01 的 code object 对象的输出结果（完整代码见[co01](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/code/codeobject/co01.py)）如下所示：
 
 ```bash
 code
@@ -111,5 +111,35 @@ code
 
 - 字段 argcount 的值等于 1，说明函数有一个参数，这个函数 test_co01 有一个参数 c 是相互对应的。
 - 字段 nlocals 的值等于 3，说明在函数 test_co01 当中一个一共实现了三个函数本地变量 a, b, c 。
-- 
+- 字段 names，对应代码代码当中的 co_names，根据前面的定义就是 d 这个全局变量在函数  test_co01 当中使用，但是却没有在函数当中定义了。
+- 字段 varnames，这个就表示在本地定义使用的变量了，在函数 test_co01 当中主要有三个变量 a, b, c 。
+- 字段 filename，就是 python 文件的地址了。
+- 字段 firstlineno 说明函数的第一行出现在对应 python 代码的 第 8 行。
+
+### Flags 字段详细分析
+
+我们具体使用 python3.5 的源代码进行分析，在 cpython 虚拟机的具体实现如下所示（Include/code.h）：
+
+```c
+/* Masks for co_flags above */
+#define CO_OPTIMIZED	0x0001
+#define CO_NEWLOCALS	0x0002
+#define CO_VARARGS	0x0004
+#define CO_VARKEYWORDS	0x0008
+#define CO_NESTED       0x0010
+#define CO_GENERATOR    0x0020
+/* The CO_NOFREE flag is set if there are no free or cell variables.
+   This information is redundant, but it allows a single flag test
+   to determine whether there is any extra work to be done when the
+   call frame it setup.
+*/
+#define CO_NOFREE       0x0040
+
+/* The CO_COROUTINE flag is set for coroutine functions (defined with
+   ``async def`` keywords) */
+#define CO_COROUTINE            0x0080
+#define CO_ITERABLE_COROUTINE   0x0100
+```
+
+
 
