@@ -118,6 +118,148 @@ b'\x90\x01\x90\x02dA'
 
 根据上面程序的输出结果可以看到我们的分析结果是正确的。
 
+## 源代码字节码映射表
+
+在本小节主要分析一个 code object 对象当中的 co_lnotab 字段，通过分析一个具体的字段来学习这个字段的设计。
+
+```python
+import dis
+
+
+def add(a, b):
+    a += 1
+    b += 2
+    return a + b
+
+
+if __name__ == '__main__':
+    dis.dis(add.__code__)
+    print(f"{list(bytearray(add.__code__.co_lnotab)) = }")
+    print(f"{add.__code__.co_firstlineno = }")
+```
+
+首先 dis 的输出第一列是字节码对应的源代码的行号，第二列是字节码在字节序列当中的位移。
+
+上面的代码输出结果如下所示：
+
+```bash
+  源代码的行号  字节码的位移
+  6           0 LOAD_FAST                0 (a)
+              2 LOAD_CONST               1 (1)
+              4 INPLACE_ADD
+              6 STORE_FAST               0 (a)
+
+  7           8 LOAD_FAST                1 (b)
+             10 LOAD_CONST               2 (2)
+             12 INPLACE_ADD
+             14 STORE_FAST               1 (b)
+
+  8          16 LOAD_FAST                0 (a)
+             18 LOAD_FAST                1 (b)
+             20 BINARY_ADD
+             22 RETURN_VALUE
+list(bytearray(add.__code__.co_lnotab)) = [0, 1, 8, 1, 8, 1]
+add.__code__.co_firstlineno = 5
+```
+
+从上面代码的输出结果可以看出字节码一共分成三段，每段表示一行代码的字节码。现在我们来分析一下 co_lnotab 这个字段，这个字段其实也是两个字节为一段的。比如上面的 [0, 1, 8, 1, 8, 1] 就可以分成三段 [0, 1], [8, 1], [8, 1] 。这其中的含义分别为：
+
+- 第一个数字表示距离上一行代码的字节码数目。
+- 第二个数字表示距离上一行有效代码的行数。
+
+现在我们来模拟上面代码的字节码的位移和源代码行数之间的关系：
+
+- [0, 1]，说明这行代码离上一行代码的字节位移是 0 ，因此我们可以看到使用 dis 输出的字节码 LOAD_FAST ，前面的数字是 0，距离上一行代码的行数等于 1 ，代码的第一行的行号等于 5，因此 LOAD_FAST 对应的行号等于 5 + 1 = 6 。
+- [8, 1]，说明这行代码距离上一行代码的字节位移为 8 个字节，因此第二块的 LOAD_FAST 前面是 8 ，距离上一行代码的行数等于 1，因此这个字节码对应的源代码的行号等于 6 + 1 = 7。
+- [8, 1]，同理可以知道这块字节码对应源代码的行号是 8 。
+
+现在有一个问题是当两行代码之间相距的行数超过 一个字节的表示范围怎么办？在 python3.5 以后如果行数差距大于 127，那么就使用 (0, 行数) 对下一个组合进行表示，(0, $x_1$), (0,$ x_2$) ... ，直到 $x_1 + ... + x_n$ = 行数。
+
+在后面的程序当中我们会使用 compile 这个 python 内嵌函数。当你使用Python编写代码时，可以使用`compile()`函数将Python代码编译成字节代码对象。这个字节码对象可以被传递给Python的解释器或虚拟机，以执行代码。
+
+`compile()`函数接受三个参数：
+
+- `source`: 要编译的Python代码，可以是字符串，字节码或AST对象。
+- `filename`: 代码来源的文件名（如果有），通常为字符串。
+- `mode`: 编译代码的模式。可以是 'exec'、'eval' 或 'single' 中的一个。'exec' 模式用于编译多行代码，'eval' 用于编译单个表达式，'single' 用于编译单行代码。
+
+```python
+import dis
+
+code = """
+x=1
+y=2
+""" \
++ "\n" * 500 + \
+"""
+z=x+y
+"""
+
+code = compile(code, '<string>', 'exec')
+print(list(bytearray(code.co_lnotab)))
+print(code.co_firstlineno)
+dis.dis(code)
+```
+
+上面的代码输出结果如下所示：
+
+```bash
+[0, 1, 4, 1, 4, 127, 0, 127, 0, 127, 0, 121]
+1
+  2           0 LOAD_CONST               0 (1)
+              2 STORE_NAME               0 (x)
+
+  3           4 LOAD_CONST               1 (2)
+              6 STORE_NAME               1 (y)
+
+505           8 LOAD_NAME                0 (x)
+             10 LOAD_NAME                1 (y)
+             12 BINARY_ADD
+             14 STORE_NAME               2 (z)
+             16 LOAD_CONST               2 (None)
+             18 RETURN_VALUE
+```
+
+根据我们前面的分析因为第三行和第二行之间的差距大于 127 ，因此后面的多个组合都是用于表示行数的。
+
+505 = 3(前面已经有三行了) + (127 + 127 + 127 + 121)(这个是第二行和第三行之间的差距，这个值为 502，中间有 500 个换行但是因为字符串相加的原因还增加了两个换行，因此一共是 502 个换行)。
+
+具体的算法用代码表示如下所示，下面的参数就是我们传递给 dis 模块的 code，也就是一个 code object 对象。
+
+```python
+def findlinestarts(code):
+    """Find the offsets in a byte code which are start of lines in the source.
+
+    Generate pairs (offset, lineno) as described in Python/compile.c.
+
+    """
+    byte_increments = code.co_lnotab[0::2]
+    line_increments = code.co_lnotab[1::2]
+    bytecode_len = len(code.co_code)
+
+    lastlineno = None
+    lineno = code.co_firstlineno
+    addr = 0
+    for byte_incr, line_incr in zip(byte_increments, line_increments):
+        if byte_incr:
+            if lineno != lastlineno:
+                yield (addr, lineno)
+                lastlineno = lineno
+            addr += byte_incr
+            if addr >= bytecode_len:
+                # The rest of the lnotab byte offsets are past the end of
+                # the bytecode, so the lines were optimized away.
+                return
+        if line_incr >= 0x80:
+            # line_increments is an array of 8-bit signed integers
+            line_incr -= 0x100
+        lineno += line_incr
+    if lineno != lastlineno:
+        yield (addr, lineno)
+```
+
+
+
 ## python 字节码表
 
 |操作|操作码|
@@ -241,3 +383,16 @@ b'\x90\x01\x90\x02dA'
 |SET_UPDATE|163|
 |DICT_MERGE|164|
 |DICT_UPDATE|165|
+
+## 总结
+
+在本篇文章当中主要给大家介绍了 cpython 当中对于字节码和源代码和字节码之间的映射关系的具体设计，这对于我们深入去理解 cpython 虚拟机的设计非常有帮助！
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
