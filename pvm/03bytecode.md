@@ -42,15 +42,81 @@ bytecode:  [124, 0, 124, 1, 23, 0, 83, 0]
 
 操作码和对应的操作指令在文末有详细的对应表。在上面的代码当中主要使用到了三个字节码指令分别是 124，23 和 83 ，他们对应的操作指令分别为 LOAD_FAST，BINARY_ADD，RETURN_VALUE。他们的含义如下：
 
-- LOAD_FAST：将对本地 co-varnames[var_num] 压入栈顶。
+- LOAD_FAST：将 varnames[var_num] 压入栈顶。
 - BINARY_ADD：从栈中弹出两个对象并且将它们相加的结果压入栈顶。
 - RETURN_VALUE：弹出栈顶的元素，将其作为函数的返回值。
 
 首先我们需要知道的是 BINARY_ADD 和 RETURN_VALUE，这两个操作指令是没有参数的，因此在这两个操作码之后的参数都是 0 。
 
-但是 LOAD_FAST 是有参数的，在上面我们已经知道 LOAD_FAST 是将 co-varnames[var_num] 压入栈，var_num 就是指令 LOAD_FAST 的参数。在上面的代码当中一共有两条 LOAD_FAST 指令，分别是将 a 和 b 压入到栈中，他们在 varnames 当中的下标分别是 0 和 1，因此他们呢的操作数就是 0 和 1 。
+但是 LOAD_FAST 是有参数的，在上面我们已经知道 LOAD_FAST 是将 co-varnames[var_num] 压入栈，var_num 就是指令 LOAD_FAST 的参数。在上面的代码当中一共有两条 LOAD_FAST 指令，分别是将 a 和 b 压入到栈中，他们在 varnames 当中的下标分别是 0 和 1，因此他们的操作数就是 0 和 1 。
+
+## 字节码扩展参数
+
+在上面我们谈到的 python 字节码操作数和操作码各占一个字节，但是如果 varnames 或者常量表的数据的个数大于 1 个字节的表示范围的话那么改如何处理呢？
+
+为了解决这个问题，cpython 为字节码设计的扩展参数，比如说我们要加载常量表当中的下标为 66113 的对象，那么对应的字节码如下：
+
+```python
+[144, 1, 144, 2, 100, 65]
+```
+
+其中 144 表示 EXTENDED_ARG，他本质上不是一个 python 虚拟机需要执行的字节码，这个字段设计出来主要是为了用与计算扩展参数的。
+
+100 对应的操作指令是 LOAD_CONST ，其操作码是 65，但是上面的指令并不会加载常量表当中下标为 65 对象，而是会加载下标为 66113 的对象，原因就是因为  EXTENDED_ARG 。
+
+现在来模拟一下上面的分析过程：
+
+- 先读取一条字节码指令，操作码等于 144 ，说明是扩展参数，那么此时的参数 arg 就等于 (1 x (1 << 8)) = 256 。
+- 读取第二条字节码指令，操作码等于 144 ，说明是扩展参数，因为前面 arg 已经存在切不等于 0 了，那么此时 arg 的计算方式已经发生了改变，arg = arg << 8 + 2 << 8 ，也就是说原来的 arg 乘以 256 再加上新的操作数乘以 256 ，此时 arg = 66048 。
+- 读取第三条字节码指令，操作码等于 100，此时是 LOAD_CONST 这条指令，那么此时的操作码等于 arg += 65，因为操作码不是 EXTENDED_ARG 因此操作数不需要在乘以 256 了。
+
+上面的计算过程用程序代码表示如下，下面的代码当中 code 就是真正的字节序列 HAVE_ARGUMENT = 90 。
+
+```python
+def _unpack_opargs(code):
+    extended_arg = 0
+    for i in range(0, len(code), 2):
+        op = code[i]
+        if op >= HAVE_ARGUMENT:
+            arg = code[i+1] | extended_arg
+            extended_arg = (arg << 8) if op == EXTENDED_ARG else 0
+        else:
+            arg = None
+        yield (i, op, arg)
+```
+
+我们可以使用代码来验证我们前面的分析：
+
+```python
+import dis
 
 
+def num_to_byte(n):
+    return n.to_bytes(1, "little")
+
+
+def nums_to_bytes(data):
+    ans = b"".join([num_to_byte(n) for n in data])
+    return ans
+
+
+if __name__ == '__main__':
+    # extended_arg extended_num opcode oparg for python_version > 3.5
+    bytecode = nums_to_bytes([144, 1, 144, 2, 100, 65])
+    print(bytecode)
+    dis.dis(bytecode)
+```
+
+上面的代码输出结果如下所示：
+
+```bash
+b'\x90\x01\x90\x02dA'
+          0 EXTENDED_ARG             1
+          2 EXTENDED_ARG           258
+          4 LOAD_CONST           66113 (66113)
+```
+
+根据上面程序的输出结果可以看到我们的分析结果是正确的。
 
 ## python 字节码表
 
