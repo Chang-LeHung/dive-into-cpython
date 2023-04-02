@@ -22,5 +22,5 @@ if __name__ == '__main__':
     dis.dis(bytecode)
 
     dis.dis(nums_to_bytes.__code__)
-
-    print(nums_to_bytes.__code__.co_lnotab)
+    print("==========================================")
+    dis.dis(nums_to_bytes([64]))
