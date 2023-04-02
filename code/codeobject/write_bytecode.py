@@ -7,7 +7,6 @@ def num_to_byte(n):
 
 
 def nums_to_bytes(data):
-
     ans = b"".join([num_to_byte(n) for n in data])
     return ans
 
@@ -21,3 +20,7 @@ if __name__ == '__main__':
     bytecode = nums_to_bytes([100, 65])
     print(bytecode)
     dis.dis(bytecode)
+
+    dis.dis(nums_to_bytes.__code__)
+
+    print(nums_to_bytes.__code__.co_lnotab)
