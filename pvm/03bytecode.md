@@ -4,9 +4,53 @@
 
 ## python 字节码设计
 
-一条 python 字节码主要有两部分组成，一部分是操作码，一部分是这个操作码的参数，在 cpython 当中只有部分字节码有参数，如果对应的字节码没有参数，那么 oparg 的值就等于 0 。
+一条 python 字节码主要有两部分组成，一部分是操作码，一部分是这个操作码的参数，在 cpython 当中只有部分字节码有参数，如果对应的字节码没有参数，那么 oparg 的值就等于 0 ，在 cpython 当中 opcode < 90 的指令是没有参数的。
 
 ![45-bytecode](../images/45-bytecode.png)
+
+opcode 和 oparg 各占一个字节，cpython 虚拟机使用小端方式保存字节码。
+
+我们使用下面的代码片段先了解一下字节码的设计：
+
+```python
+import dis
+
+
+def add(a, b):
+    return a + b
+
+
+if __name__ == '__main__':
+    print(add.__code__.co_code)
+    print("bytecode: ", list(bytearray(add.__code__.co_code)))
+    dis.dis(add)
+```
+
+上面的代码在 python3.9 的输出如下所示：
+
+```bash
+b'|\x00|\x01\x17\x00S\x00'
+bytecode:  [124, 0, 124, 1, 23, 0, 83, 0]
+  5           0 LOAD_FAST                0 (a)
+              2 LOAD_FAST                1 (b)
+              4 BINARY_ADD
+              6 RETURN_VALUE
+```
+
+首先 需要了解的是 add.\_\_code\_\_.co\_code 是函数 add 的字节码，是一个字节序列，`list(bytearray(add.__code__.co_code))` 是将和这个序列一个字节一个字节进行分开，并且将其变成 10 进制形式。根据前面我们谈到的每一条指令——字节码占用 2 个字节，因此上面的字节码有四条指令：
+![45-bytecode](../images/46-bytecode.png)
+
+操作码和对应的操作指令在文末有详细的对应表。在上面的代码当中主要使用到了三个字节码指令分别是 124，23 和 83 ，他们对应的操作指令分别为 LOAD_FAST，BINARY_ADD，RETURN_VALUE。他们的含义如下：
+
+- LOAD_FAST：将对本地 co-varnames[var_num] 压入栈顶。
+- BINARY_ADD：从栈中弹出两个对象并且将它们相加的结果压入栈顶。
+- RETURN_VALUE：弹出栈顶的元素，将其作为函数的返回值。
+
+首先我们需要知道的是 BINARY_ADD 和 RETURN_VALUE，这两个操作指令是没有参数的，因此在这两个操作码之后的参数都是 0 。
+
+但是 LOAD_FAST 是有参数的，在上面我们已经知道 LOAD_FAST 是将 co-varnames[var_num] 压入栈，var_num 就是指令 LOAD_FAST 的参数。在上面的代码当中一共有两条 LOAD_FAST 指令，分别是将 a 和 b 压入到栈中，他们在 varnames 当中的下标分别是 0 和 1，因此他们呢的操作数就是 0 和 1 。
+
+
 
 ## python 字节码表
 
