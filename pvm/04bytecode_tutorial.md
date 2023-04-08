@@ -241,5 +241,29 @@ dis.dis(s)
              18 STORE_NAME               1 (fib)
              20 LOAD_CONST               4 (None)
              22 RETURN_VALUE
+
+Disassembly of <code object decorator at 0x108068d40, file "<dis>", line 2>:
+  3           0 LOAD_GLOBAL              0 (print)
+              2 LOAD_CONST               1 ('Hello')
+              4 CALL_FUNCTION            1
+              6 POP_TOP
+
+  4           8 LOAD_FAST                0 (func)
+             10 RETURN_VALUE
+
+Disassembly of <code object fib at 0x1075c1710, file "<dis>", line 6>:
+  8           0 LOAD_CONST               0 (None)
+              2 RETURN_VALUE
 ```
 
+- 执行第一条指令 LOAD_CONST，这条指令主要是加载一个 code object 对象，这个对象里面主要是包含函数 decorator 的字节码，主要是上面字节码的第二块内容。在执行完这条字节码之后栈空间如下所示：
+
+![47-bytecode](../images/47-bytecode.png)
+
+- 执行完第二条指令 LOAD_CONST 之后，会将字符串 decorator 加载进入栈空间当中。
+
+![47-bytecode](../images/48-bytecode.png)
+
+- 执行第三条指令 MAKE_FUNCTION，这条字节码的作用是在虚拟机内部创建一个函数，函数的名称为 decorator，函数对应的字节码则是在先前压入栈空间当中的 code object 对象，这条指令还会将创建好的函数对象压入栈中。
+
+![47-bytecode](../images/49-bytecode.png)
