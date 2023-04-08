@@ -1,4 +1,4 @@
-# 深入理解 python 虚拟机：字节码教程(1)——模拟python程序的执行
+# 深入理解 python 虚拟机：字节码教程(1)——原来装饰器是这样实现的
 
 在本篇文章当中主要给大家介绍在 cpython 当中一些比较常见的字节码，从根本上理解 python 程序的执行。在本文当中主要介绍一些 python 基本操作的字节码，并且将从字节码的角度分析函数装饰器的原理！
 
@@ -60,6 +60,43 @@
               4 BINARY_SUBTRACT
               6 RETURN_VALUE
 ```
+
+同样的加减乘除取余数的字节码如下所示：
+
+```python
+>>> dis.dis(lambda: x + y)
+  1           0 LOAD_GLOBAL              0 (x)
+              2 LOAD_GLOBAL              1 (y)
+              4 BINARY_ADD
+              6 RETURN_VALUE
+>>> dis.dis(lambda: x - y)
+  1           0 LOAD_GLOBAL              0 (x)
+              2 LOAD_GLOBAL              1 (y)
+              4 BINARY_SUBTRACT
+              6 RETURN_VALUE
+>>> dis.dis(lambda: x * y)
+  1           0 LOAD_GLOBAL              0 (x)
+              2 LOAD_GLOBAL              1 (y)
+              4 BINARY_MULTIPLY
+              6 RETURN_VALUE
+>>> dis.dis(lambda: x / y)
+  1           0 LOAD_GLOBAL              0 (x)
+              2 LOAD_GLOBAL              1 (y)
+              4 BINARY_TRUE_DIVIDE
+              6 RETURN_VALUE
+>>> dis.dis(lambda: x // y)
+  1           0 LOAD_GLOBAL              0 (x)
+              2 LOAD_GLOBAL              1 (y)
+              4 BINARY_FLOOR_DIVIDE
+              6 RETURN_VALUE
+>>> dis.dis(lambda: x % y)
+  1           0 LOAD_GLOBAL              0 (x)
+              2 LOAD_GLOBAL              1 (y)
+              4 BINARY_MODULO
+              6 RETURN_VALUE
+```
+
+
 
 ### COMPARE_OP
 
@@ -267,3 +304,62 @@ Disassembly of <code object fib at 0x1075c1710, file "<dis>", line 6>:
 - 执行第三条指令 MAKE_FUNCTION，这条字节码的作用是在虚拟机内部创建一个函数，函数的名称为 decorator，函数对应的字节码则是在先前压入栈空间当中的 code object 对象，这条指令还会将创建好的函数对象压入栈中。
 
 ![47-bytecode](../images/49-bytecode.png)
+
+- STORE_NAME，条字节码会将栈顶的元素弹出，并且将 co_names[oparg]  指向这个对象，在上面的字节码当中 co_names[oparg]  就是 decorator 。
+
+![47-bytecode](../images/50-bytecode.png)
+
+- LOAD_NAME，这条字节码就是将 co_names[oparg] 对应的名字指向的对象重新加载进入栈空间当中，也就是上面的 decorator 函数加入进行栈空间当中。
+
+![47-bytecode](../images/51-bytecode.png)
+
+- 接下来的三条字节码 LOAD_CONST，LOAD_CONST 和 MAKE_FUNCTION，在执行这三条字节码之后，栈空间如下所示：
+
+![47-bytecode](../images/52-bytecode.png)
+
+- 接下来的一条指令非常重要，这条指令便是装饰器的核心原理，CALL_FUNCTION 这条指令有一个参数 i，在上面的字节码当中为 1，也就是说从栈顶开始的前 i 个元素都是函数参数，调用的函数在栈空间的位置为 i + 1 （从栈顶往下数），那么在上面的情况下就是说调用 decorator 函数，并且将 fib 函数作为 decorator 函数的参数，decorator 函数的返回值再压入栈顶。在上面的代码当中 decorator 函数返回值也是一个函数，也就是 decorator 函数的参数，即 fib 函数。
+
+![47-bytecode](../images/54-bytecode.png)
+
+- 接下来便是 STORE_NAME 字节码，这条字节码的含义我们在前面已经说过了，就是将栈顶元素弹出，保存到 co_names[oparg] 指向的对象当中，在上面的代码当中也就是将栈顶的对象保存到 fib 当中。栈顶元素 fib 函数是调用函数 decorator 的返回值。
+
+看到这里就能够理解了原来装饰器的最根本的原理不就是函数调用嘛，比如我们最前面的用于计算函数执行时间的装饰器的原理就是：
+
+```python
+fib = eval_time(fib)
+```
+
+将 fib 函数作为 eval_time 函数的参数，再将这个函数的返回值保存到 fib 当中，当然这个对象必须是可调用的，不然后面使用 fib() 就会保存，我们可以使用下面的代码来验证这个效果。
+
+```python
+def decorator(func):
+    return func()
+
+
+@decorator
+def demo():
+    return "function demo return string : Demo"
+
+print(demo)
+```
+
+执行上面的程序结果为：
+
+```bash
+function demo return string : Demo
+```
+
+可以看到 demo 已经变成了一个字符串对象而不再是一个函数了，因为 `demo = decorator(demo)`，而在函数 decorator 当中返回值是 demo 函数自己的返回值，因此才打印了字符串。
+
+## 总结
+
+在本篇文章当中主要给大家介绍了 python 当中一些基础的字节码对应的含义以及示例代码，本篇文章最重要的便是从字节码的角度解释了装饰器的本质原理，这对我们以后使用装饰器非常有帮助，可以灵活的控制和了解装饰器其中发生的故事。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
