@@ -14,6 +14,8 @@ def scan(dir):
                     lines = fp.readlines()
                     if "qrcode" not in lines[-1]:
                         lines.append(f"![]({rel_path})")
+                with open(filename, "w+") as fp:
+                    fp.writelines(lines)
 
 
 if __name__ == '__main__':

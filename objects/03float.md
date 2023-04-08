@@ -182,3 +182,4 @@ float_bool(PyFloatObject *v)
 
 关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
 
+![](../qrcode2.jpg)
