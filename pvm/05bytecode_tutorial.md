@@ -89,3 +89,30 @@ if __name__ == '__main__':
 接下来 LOAD_FAST 将 a 指向的对象也就是 1 加载进入栈中，此时的 counter = 6，LOAD_CONST 将常量 1 加载进行入栈空间当中，此时 counter = 8，在执行完这两条指令之后，栈空间的变化如下图所示：
 
 ![56-bytecode](../images/59-bytecode.png)
+
+接下来的一条指令是 COMPARE_OP ，这个指令有一个参数表示比较的符号，这里是比较 a > 1，并且会将比较的结果压入栈中，比较的结果是 false ，因为 COMPARE_OP 首先会将栈空间的两个输入弹出，因此在执行完这条指令之后栈空间和 counter 的值如下：
+
+![56-bytecode](../images/60-bytecode.png)
+
+下面一条指令为 POP_JUMP_IF_FALSE，根据前面的字节码含义，这个字节码会将栈顶的 false 弹出，并且会进行跳转，并且将 counter 的值直接编程参数的值，这里他的参数是 22 ，因此 counter = 22，在执行完这条指令之后，结果如下：
+
+![56-bytecode](../images/61-bytecode.png)
+
+因为现在已经跳转到了 22 ，因此接下来执行的指令为 LOAD_FAST，将变量 a 加载进入栈空间，LOAD_CONST 将常量 1 加载进入栈空间，在执行完这两条执行之后，变化情况如下：
+
+![56-bytecode](../images/62-bytecode.png)
+
+在次执行 POP_JUMP_IF_FALSE，这回的结果也是 false ，因此继续执行 POP_JUMP_IF_FALSE，这次的参数是 40，直接将 counter 的值设置成 40 。
+
+![56-bytecode](../images/63-bytecode.png)
+
+接下来 LOAD_GLOBAL 加载一个全局变量 print 函数 counter 变成 42 ，LOAD_CONST 加载字符串 "a == 1" 进入栈空间，counter = 44，此时状态如下：
+
+![56-bytecode](../images/64-bytecode.png)
+
+CALL_FUNCTION 这个字节码有一个参数，表示调用函数的参数的个数，这里是 1，因为 print 函数只有一个参数，然后输出字符串 "a== 1"，但是这里需要注意的是 print 函数会返回一个 None，因此执行完 CALL_FUNCTION 之后状态如下：
+
+![56-bytecode](../images/65-bytecode.png)
+
+至此差不多上面的函数差不多执行完了，后面几条字节码很简单，就不再进行叙述了。
+
