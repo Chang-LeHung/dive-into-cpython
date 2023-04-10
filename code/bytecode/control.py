@@ -21,5 +21,5 @@ def test_control02():
 
 
 if __name__ == '__main__':
-    dis.dis(test_control01)
-    # dis.dis(test_control02)
+    # dis.dis(test_control01)
+    dis.dis(test_control02)

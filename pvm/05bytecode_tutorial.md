@@ -116,3 +116,15 @@ CALL_FUNCTION 这个字节码有一个参数，表示调用函数的参数的个
 
 至此差不多上面的函数差不多执行完了，后面几条字节码很简单，就不再进行叙述了。
 
+## 总结
+
+在 Python 中，控制流指令可以让解释器根据特定条件改变执行流程，实现循环、条件语句等基本语言结构。Python 中与控制流有关的字节码指令包括 JUMP_FORWARD、POP_JUMP_IF_TRUE、POP_JUMP_IF_FALSE、JUMP_IF_TRUE_OR_POP、JUMP_IF_FALSE_OR_POP 和 JUMP_ABSOLUTE 等。这些指令都有一个参数，主要是用来计算跳转的目标位置等。通过对这些指令的了解，我们可以更深入地理解 Python 字节码的执行过程和控制流实现原理。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
