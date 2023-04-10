@@ -81,3 +81,11 @@ if __name__ == '__main__':
 现在执行第一条字节码 LOAD_CONST，执行完之后 counter = 2，因为这条字节码占一个字节，参数栈一个字节，因此下次执行的字节码的位置在 bytecode 的低三个位置，对应的下标为 2，因此 counter = 2 。
 
 ![56-bytecode](../images/57-bytecode.png)
+
+现在执行第二条字节码 STORE_FAST，让 a 指向 1 ，同样的 STORE_FAST 操作码和操作数各占一个字节，因此执行完这条字节码之后栈空间没有数据，counter = 4 。
+
+![56-bytecode](../images/58-bytecode.png)
+
+接下来 LOAD_FAST 将 a 指向的对象也就是 1 加载进入栈中，此时的 counter = 6，LOAD_CONST 将常量 1 加载进行入栈空间当中，此时 counter = 8，在执行完这两条指令之后，栈空间的变化如下图所示：
+
+![56-bytecode](../images/59-bytecode.png)
