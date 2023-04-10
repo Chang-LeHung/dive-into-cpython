@@ -18,6 +18,7 @@
 - [深入理解 Python 虚拟机：字节码灵魂 Code Object](pvm/02codeobject.md)
 - [深入理解 python 虚拟机：令人拍案叫绝的字节码设计](pvm/03bytecode.md)
 - [深入理解 python 虚拟机：字节码教程(1)——原来装饰器是这样实现的](pvm/04bytecode_tutorial.md)
+- [深入理解 python 虚拟机：字节码教程(2)——控制流是如何实现的？](pvm/05bytecode_tutorial.md)
 
 ## 给 cpython 添加 C 扩展模块
 
