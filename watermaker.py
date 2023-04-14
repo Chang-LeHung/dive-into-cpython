@@ -22,7 +22,7 @@ def add_water_mark():
 
             # 设置水印文本和字体
             watermark_text = '@一无是处的研究僧(全网同名)'  # 水印文本
-            font_size = int(original_width / 18)  # 字体大小随图片宽度变化
+            font_size = int(original_width / 25)  # 字体大小随图片宽度变化
             font = ImageFont.truetype('font.ttf', font_size)  # 替换为你喜欢的字体
 
             # 创建透明的水印图像
