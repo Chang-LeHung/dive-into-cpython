@@ -56,20 +56,28 @@ def test_excep():
         print("Finally Done")
 
 
+def unpack():
+    l = [1, 2, 3]
+    a, b, c = l
+
+
 if __name__ == '__main__':
+    print("test_loop:")
     dis.dis(test_loop)
-    print("==========================")
+    print("test_continue:")
     dis.dis(test_continue)
-    print("==========================")
+    print("test_break:")
     dis.dis(test_break)
-    print("==========================")
+    print("test_while:")
     dis.dis(test_while)
-    print("==========================")
+    print("test_exception:")
     dis.dis(test_exception)
-    print("==========================")
+    print("test_list:")
     dis.dis(test_list)
-    print("==========================")
+    print("test_excep:")
     dis.dis(test_excep)
+    print("unpack")
+    dis.dis(unpack)
     print(sys.version)
 
     try:
