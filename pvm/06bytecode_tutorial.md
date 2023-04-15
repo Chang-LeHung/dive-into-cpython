@@ -48,3 +48,18 @@ def test_loop():
 - 如果没有迭代完成则将函数的返回值压入栈顶，并且不需要弹出迭代器，比如当我们第一次调用 \_\_next\_\_ 函数的时候，range 的返回值为0，那么此时栈空间的内容如下所示：
 
 ![66-bytecode](../images/68-bytecode.png)
+
+接下来执行的字节码为 STORE_FAST，这条字节码的含义就是弹出栈顶的元素，并且将这个元素保存到 co_varnames[var_num] 当中，var_num 就是这条字节码的参数，在上面的函数当中就是 0，对应的变量为 i ，因此这条字节码的含义就是弹出栈顶的元素并且保存到变量 i 当中。
+
+LOAD_GLOBAL，将内嵌函数 print 加载进入栈中，LOAD_FAST 将变量 i 加载进入栈空间当中，此时栈空间的内容如下所示：
+
+![66-bytecode](../images/69-bytecode.png)
+
+CALL_FUNCTION 会调用 print 函数打印数字 0，并且将函数的返回值压入栈空间当中，print 函数的返回值为 None，此时栈空间的内容如下所示：
+
+![66-bytecode](../images/70-bytecode.png)
+
+POP_TOP 将栈顶的元素弹出，JUMP_ABSOLUTE 字节码有一个参数，在上面的函数当中这个参数为 8 ，当执行这条字节码的时候直接将 bytecode 的 counter 直接设置成这个参数值，因此执行完这条字节码之后下一条被执行的字节码又是 FOR_ITER，这便实现了循环的效果。
+
+综合分析上面的分析过程，实现循环的效果主要是有两个字节码实现的，一个是 FOR_ITER，当迭代器迭代完成之后，会直接跳出循环，实现这个的原理是在字节码的 counter 上加上一个值，另外一个就是 JUMP_ABSOLUTE，他可以直接跳到某一处的字节码位置进行执行。
+
