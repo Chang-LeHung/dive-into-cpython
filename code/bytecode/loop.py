@@ -14,6 +14,7 @@ def test_continue():
         data = random.randint(0, 10)
         if data < 5:
             continue
+        print(f"{data = }")
 
 
 def test_break():
