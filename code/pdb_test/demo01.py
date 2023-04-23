@@ -33,5 +33,5 @@ def my_tracer(frame, event, arg=None):
 if __name__ == '__main__':
     # sys.settrace(my_tracer)
     # f(2)
-    pdb.run("f(2)")
-    # dis.dis(f)
+    # pdb.run("f(2)")
+    dis.dis("f()")
