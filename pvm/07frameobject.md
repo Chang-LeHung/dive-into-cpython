@@ -26,9 +26,15 @@ typedef struct _frame {
        to the current stack top. */
     PyObject **f_stacktop;
     PyObject *f_trace;          /* Trace function */
-    char f_trace_lines;         /* Emit per-line trace events? */
-    char f_trace_opcodes;       /* Emit per-opcode trace events? */
 
+    /* In a generator, we need to be able to swap between the exception
+       state inside the generator and the exception state of the calling
+       frame (which shouldn't be impacted when the generator "yields"
+       from an except handler).
+       These three fields exist exactly for that, and are unused for
+       non-generator frames. See the save_exc_state and swap_exc_state
+       functions in ceval.c for details of their use. */
+    PyObject *f_exc_type, *f_exc_value, *f_exc_traceback;
     /* Borrowed reference to a generator, or NULL */
     PyObject *f_gen;
 
@@ -44,5 +50,68 @@ typedef struct _frame {
     PyTryBlock f_blockstack[CO_MAXBLOCKS]; /* for try and loop blocks */
     PyObject *f_localsplus[1];  /* locals+stack, dynamically sized */
 } PyFrameObject;
+```
+
+## 内存申请和栈帧的内存布局
+
+在 cpython 当中，当我们需要申请一个 frame object 对象的时候，首先需要申请内存空间，但是在申请内存空间的时候并不是单单申请一个 frameobject 大小的内存，而是会申请额外的内存空间。
+
+![71-frame](../images/71-frame.png)
+
+```c
+  Py_ssize_t extras, ncells, nfrees;
+          ncells = PyTuple_GET_SIZE(code->co_cellvars);
+          nfrees = PyTuple_GET_SIZE(code->co_freevars);
+          extras = code->co_stacksize + code->co_nlocals + ncells +
+              nfrees;
+          if (free_list == NULL) {
+              f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type,
+              extras);
+              if (f == NULL) {
+                  Py_DECREF(builtins);
+                  return NULL;
+              }
+          }
+  f->f_code = code;
+  extras = code->co_nlocals + ncells + nfrees;
+  f->f_valuestack = f->f_localsplus + extras;
+  for (i=0; i<extras; i++)
+      f->f_localsplus[i] = NULL;
+  f->f_locals = NULL;
+  f->f_trace = NULL;
+  f->f_exc_type = f->f_exc_value = f->f_exc_traceback = NULL;
+
+    f->f_stacktop = f->f_valuestack;
+    f->f_builtins = builtins;
+    Py_XINCREF(back);
+    f->f_back = back;
+    Py_INCREF(code);
+    Py_INCREF(globals);
+    f->f_globals = globals;
+    /* Most functions have CO_NEWLOCALS and CO_OPTIMIZED set. */
+    if ((code->co_flags & (CO_NEWLOCALS | CO_OPTIMIZED)) ==
+        (CO_NEWLOCALS | CO_OPTIMIZED))
+        ; /* f_locals = NULL; will be set by PyFrame_FastToLocals() */
+    else if (code->co_flags & CO_NEWLOCALS) {
+        locals = PyDict_New();
+        if (locals == NULL) {
+            Py_DECREF(f);
+            return NULL;
+        }
+        f->f_locals = locals;
+    }
+    else {
+        if (locals == NULL)
+            locals = globals;
+        Py_INCREF(locals);
+        f->f_locals = locals;
+    }
+
+    f->f_lasti = -1;
+    f->f_lineno = code->co_firstlineno;
+    f->f_iblock = 0;
+    f->f_executing = 0;
+    f->f_gen = NULL;
+
 ```
 
