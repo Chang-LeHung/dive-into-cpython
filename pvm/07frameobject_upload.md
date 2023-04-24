@@ -54,7 +54,7 @@ typedef struct _frame {
 
 在 cpython 当中，当我们需要申请一个 frame object 对象的时候，首先需要申请内存空间，但是在申请内存空间的时候并不是单单申请一个 frameobject 大小的内存，而是会申请额外的内存空间，大致布局如下所示。
 
-![71-frame](../images/71-frame.png)
+![](https://img2023.cnblogs.com/blog/2519003/202304/2519003-20230425003254479-1199783462.png)
 
 - f_localsplus，这是一个数组用户保存函数执行的 local 变量，这样可以直接通过下标得到对应的变量的值。
 - ncells 和 nfrees，这个变量和我们前面在分析 code object 的函数闭包相关，ncells 和 ncells 分别表示 cellvars 和 freevars 中变量的个数。
@@ -145,7 +145,7 @@ typedef struct _frame {
 
 如果我们在一个函数当中调用另外一个函数，这个函数再调用其他函数就会形成函数的调用链，就会形成下图所示的链式结构。
 
-![71-frame](../images/72-frame.png)
+![](https://img2023.cnblogs.com/blog/2519003/202304/2519003-20230425003254829-2133890674.png)
 
 ## 例子分析
 
@@ -187,11 +187,11 @@ if __name__ == '__main__':
 
 初始时 frameobject 的布局如下所示：
 
-![71-frame](../images/73-frame.png)
+![](https://img2023.cnblogs.com/blog/2519003/202304/2519003-20230425003255187-1492136622.png)
 
 现在执行第一条指令 LOAD_CONST 此时的 f_lasti 等于 -1，执行完这条字节码之后栈帧情况如下：
 
-![71-frame](../images/74-frame.png)
+![](https://img2023.cnblogs.com/blog/2519003/202304/2519003-20230425003255525-225992318.png)
 
 在执行完这条字节码之后 f_lasti 的值变成 0。字节码 LOAD_CONST 对应的 c 源代码如下所示：
 
@@ -222,7 +222,7 @@ TARGET(STORE_FAST) {
 
 接下来两条指令分别将 a b 加载进入栈空间单中现在栈空间布局如下所示：
 
-![71-frame](../images/75-frame.png)
+![](https://img2023.cnblogs.com/blog/2519003/202304/2519003-20230425003256020-874259084.png)
 
 然后执行 BINARY_ADD 指令 弹出栈空间的两个元素并且把他们进行相加操作，最后将得到的结果再压回栈空间当中。
 
