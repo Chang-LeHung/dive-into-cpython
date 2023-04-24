@@ -54,32 +54,42 @@ typedef struct _frame {
 
 ## 内存申请和栈帧的内存布局
 
-在 cpython 当中，当我们需要申请一个 frame object 对象的时候，首先需要申请内存空间，但是在申请内存空间的时候并不是单单申请一个 frameobject 大小的内存，而是会申请额外的内存空间。
+在 cpython 当中，当我们需要申请一个 frame object 对象的时候，首先需要申请内存空间，但是在申请内存空间的时候并不是单单申请一个 frameobject 大小的内存，而是会申请额外的内存空间，大致布局如下所示。
 
 ![71-frame](../images/71-frame.png)
 
+- f_localsplus，这是一个数组用户保存函数执行的 local 变量，这样可以直接通过下标得到对应的变量的值。
+- ncells 和 nfrees，这个变量和我们前面在分析 code object 的函数闭包相关，ncells 和 ncells 分别表示 cellvars 和 freevars 中变量的个数。
+- stack，这个变量就是函数执行的时候函数的栈帧，这个大小在编译期间就可以确定因此可以直接确定栈空间的大小。
+
+下面是在申请 frame object 的核心代码：
+
 ```c
-  Py_ssize_t extras, ncells, nfrees;
-          ncells = PyTuple_GET_SIZE(code->co_cellvars);
-          nfrees = PyTuple_GET_SIZE(code->co_freevars);
-          extras = code->co_stacksize + code->co_nlocals + ncells +
-              nfrees;
-          if (free_list == NULL) {
-              f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type,
-              extras);
-              if (f == NULL) {
-                  Py_DECREF(builtins);
-                  return NULL;
-              }
-          }
-  f->f_code = code;
-  extras = code->co_nlocals + ncells + nfrees;
-  f->f_valuestack = f->f_localsplus + extras;
-  for (i=0; i<extras; i++)
-      f->f_localsplus[i] = NULL;
-  f->f_locals = NULL;
-  f->f_trace = NULL;
-  f->f_exc_type = f->f_exc_value = f->f_exc_traceback = NULL;
+    Py_ssize_t extras, ncells, nfrees;
+    ncells = PyTuple_GET_SIZE(code->co_cellvars); // 得到 co_cellvars 当中元素的个数
+    nfrees = PyTuple_GET_SIZE(code->co_freevars); // 得到 co_freevars 当中元素的个数
+		// extras 就是表示除了申请 frame object 自己的内存之后还需要额外申请多少个 指针对象
+		// 确切的带来说是用于保存 PyObject 的指针
+    extras = code->co_stacksize + code->co_nlocals + ncells +
+        nfrees;
+    if (free_list == NULL) {
+        f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type,
+        extras);
+        if (f == NULL) {
+            Py_DECREF(builtins);
+            return NULL;
+        }
+    }
+		// 这个就是函数的 code object 对象 将其保存到栈帧当中 f 就是栈帧对象
+    f->f_code = code;
+    extras = code->co_nlocals + ncells + nfrees;
+    f->f_valuestack = f->f_localsplus + extras;
+		// 对额外申请的内存空间尽心初始化操作
+    for (i=0; i<extras; i++)
+        f->f_localsplus[i] = NULL;
+    f->f_locals = NULL;
+    f->f_trace = NULL;
+    f->f_exc_type = f->f_exc_value = f->f_exc_traceback = NULL;
 
     f->f_stacktop = f->f_valuestack;
     f->f_builtins = builtins;
@@ -112,7 +122,26 @@ typedef struct _frame {
     f->f_iblock = 0;
     f->f_executing = 0;
     f->f_gen = NULL;
-
 ```
+
+现在我们对 frame object 对象当中的各个字段进行分析，说明他们的作用：
+
+- PyObject_VAR_HEAD：表示对象的头部信息，包括引用计数和类型信息。
+- f_back：前一个栈帧对象的指针，或者为NULL。
+- f_code：指向 PyCodeObject 对象的指针，表示当前帧执行的代码段。
+- f_builtins：指向 PyDictObject 对象的指针，表示当前帧的内置符号表，字典对象，键是字符串，值是对应的 python 对象。
+- f_globals：指向 PyDictObject 对象的指针，表示当前帧的全局符号表。
+- f_locals：指向任意映射对象的指针，表示当前帧的局部符号表。
+- f_valuestack：指向当前帧的值栈底部的指针。
+- f_stacktop：指向当前帧的值栈顶部的指针。
+- f_trace：指向跟踪函数对象的指针，用于调试和追踪代码执行过程。
+- f_exc_type、f_exc_value、f_exc_traceback：这个字段和异常相关，在函数执行的时候可能会产生错误异常，这个就是用于处理异常相关的字段。
+- f_gen：指向当前生成器对象的指针，如果当前帧不是生成器，则为NULL。
+- f_lasti：上一条指令在字节码当中的下标。
+- f_lineno：当前执行的代码行号。
+- f_iblock：当前执行的代码块在f_blockstack中的索引。
+- f_executing：表示当前帧是否仍在执行。
+- f_blockstack：用于try和loop代码块的堆栈，最多可以嵌套 CO_MAXBLOCKS 层。
+- f_localsplus：局部变量和值栈的组合，是一个动态大小的数组。
 
 ![71-frame](../images/72-frame.png)
