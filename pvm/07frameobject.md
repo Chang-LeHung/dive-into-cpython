@@ -256,6 +256,8 @@ TARGET(BINARY_ADD) {
 
 在本篇文章当中主要介绍了 cpython 当中的函数执行的时候的栈帧结构，这里面包含的程序执行时候所需要的一些必要的变量，比如说全局变量，python 内置的一些对象等等，同时需要注意的是 python 在查询对象的时候如果本地 f_locals 没有找到就会去全局 f_globals 找，如果还没有找到就会去 f_builtins 里面的找，当一个程序返回的时候就会找到 f_back 他上一个执行的栈帧，将其设置成当前线程正在使用的栈帧，这就完成了函数的调用返回，关于这个栈帧还有一些其他的字段我们没有谈到在后续的文章当中将继续深入其中一些字段。
 
+---
+
 本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
 
 更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
