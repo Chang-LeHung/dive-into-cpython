@@ -66,10 +66,10 @@ typedef struct _frame {
 
 ```c
     Py_ssize_t extras, ncells, nfrees;
-    ncells = PyTuple_GET_SIZE(code->co_cellvars); // 得到 co_cellvars 当中元素的个数
-    nfrees = PyTuple_GET_SIZE(code->co_freevars); // 得到 co_freevars 当中元素的个数
-		// extras 就是表示除了申请 frame object 自己的内存之后还需要额外申请多少个 指针对象
-		// 确切的带来说是用于保存 PyObject 的指针
+    ncells = PyTuple_GET_SIZE(code->co_cellvars); // 得到 co_cellvars 当中元素的个数 没有的话则是 0
+    nfrees = PyTuple_GET_SIZE(code->co_freevars); // 得到 co_freevars 当中元素的个数 没有的话则是 0
+    // extras 就是表示除了申请 frame object 自己的内存之后还需要额外申请多少个 指针对象
+    // 确切的带来说是用于保存 PyObject 的指针
     extras = code->co_stacksize + code->co_nlocals + ncells +
         nfrees;
     if (free_list == NULL) {
@@ -80,18 +80,19 @@ typedef struct _frame {
             return NULL;
         }
     }
-		// 这个就是函数的 code object 对象 将其保存到栈帧当中 f 就是栈帧对象
+    // 这个就是函数的 code object 对象 将其保存到栈帧当中 f 就是栈帧对象
     f->f_code = code;
     extras = code->co_nlocals + ncells + nfrees;
+    // 这个就是栈顶的位置 注意这里加上的 extras 并不包含栈的大小
     f->f_valuestack = f->f_localsplus + extras;
-		// 对额外申请的内存空间尽心初始化操作
+    // 对额外申请的内存空间尽心初始化操作
     for (i=0; i<extras; i++)
         f->f_localsplus[i] = NULL;
     f->f_locals = NULL;
     f->f_trace = NULL;
     f->f_exc_type = f->f_exc_value = f->f_exc_traceback = NULL;
 
-    f->f_stacktop = f->f_valuestack;
+    f->f_stacktop = f->f_valuestack; // 将栈顶的指针指向栈的起始位置
     f->f_builtins = builtins;
     Py_XINCREF(back);
     f->f_back = back;
@@ -134,14 +135,129 @@ typedef struct _frame {
 - f_locals：指向任意映射对象的指针，表示当前帧的局部符号表。
 - f_valuestack：指向当前帧的值栈底部的指针。
 - f_stacktop：指向当前帧的值栈顶部的指针。
-- f_trace：指向跟踪函数对象的指针，用于调试和追踪代码执行过程。
+- f_trace：指向跟踪函数对象的指针，用于调试和追踪代码执行过程，这个字段我们在后面的文章当中再进行分析。
 - f_exc_type、f_exc_value、f_exc_traceback：这个字段和异常相关，在函数执行的时候可能会产生错误异常，这个就是用于处理异常相关的字段。
 - f_gen：指向当前生成器对象的指针，如果当前帧不是生成器，则为NULL。
 - f_lasti：上一条指令在字节码当中的下标。
 - f_lineno：当前执行的代码行号。
-- f_iblock：当前执行的代码块在f_blockstack中的索引。
+- f_iblock：当前执行的代码块在f_blockstack中的索引，这个字段也主要和异常的处理有关系。
 - f_executing：表示当前帧是否仍在执行。
 - f_blockstack：用于try和loop代码块的堆栈，最多可以嵌套 CO_MAXBLOCKS 层。
 - f_localsplus：局部变量和值栈的组合，是一个动态大小的数组。
 
+如果我们在一个函数当中调用另外一个函数，这个函数再调用其他函数就会形成函数的调用链，就会形成下图所示的链式结构。
+
 ![71-frame](../images/72-frame.png)
+
+## 例子分析
+
+我们现在来模拟一下下面的函数的执行过程。
+
+```python
+
+import dis
+
+
+def foo():
+    a = 1
+    b = 2
+    return a + b
+
+
+if __name__ == '__main__':
+    dis.dis(foo)
+    print(foo.__code__.co_stacksize)
+    foo()
+```
+
+上面的 foo 函数的字节码如下所示：
+
+```bash
+  6           0 LOAD_CONST               1 (1)
+              2 STORE_FAST               0 (a)
+
+  7           4 LOAD_CONST               2 (2)
+              6 STORE_FAST               1 (b)
+
+  8           8 LOAD_FAST                0 (a)
+             10 LOAD_FAST                1 (b)
+             12 BINARY_ADD
+             14 RETURN_VALUE
+```
+
+函数 foo 的 stacksize 等于 2 。
+
+初始时 frameobject 的布局如下所示：
+
+![71-frame](../images/73-frame.png)
+
+现在执行第一条指令 LOAD_CONST 此时的 f_lasti 等于 -1，执行完这条字节码之后栈帧情况如下：
+
+![71-frame](../images/74-frame.png)
+
+在执行完这条字节码之后 f_lasti 的值变成 0。字节码 LOAD_CONST 对应的 c 源代码如下所示：
+
+```c
+TARGET(LOAD_CONST) {
+    PyObject *value = GETITEM(consts, oparg); // 从常量表当中取出下标为 oparg 的对象
+    Py_INCREF(value);
+    PUSH(value);
+    FAST_DISPATCH();
+}
+```
+
+首先是从 consts 将对应的常量拿出来，然后压入栈空间当中。
+
+再执行 STORE_FAST 指令，这个指令就是将栈顶的元素弹出然后保存到前面提到的 f_localsplus 数组当中去，那么现在栈空间是空的。STORE_FAST 对应的 c 源代码如下：
+
+```c
+TARGET(STORE_FAST) {
+    PyObject *value = POP(); // 将栈顶元素弹出
+    SETLOCAL(oparg, value);  // 保存到 f_localsplus 数组当中去
+    FAST_DISPATCH();
+}
+```
+
+执行完这条指令之后 f_lasti 的值变成 2 。
+
+接下来的两条指令和上面的一样，就不做分析了，在执行完两条指令，f_lasti 变成 6 。
+
+接下来两条指令分别将 a b 加载进入栈空间单中现在栈空间布局如下所示：
+
+![71-frame](../images/75-frame.png)
+
+然后执行 BINARY_ADD 指令 弹出栈空间的两个元素并且把他们进行相加操作，最后将得到的结果再压回栈空间当中。
+
+```c
+TARGET(BINARY_ADD) {
+    PyObject *right = POP();
+    PyObject *left = TOP();
+    PyObject *sum;
+    if (PyUnicode_CheckExact(left) &&
+             PyUnicode_CheckExact(right)) {
+        sum = unicode_concatenate(left, right, f, next_instr);
+        /* unicode_concatenate consumed the ref to left */
+    }
+    else {
+        sum = PyNumber_Add(left, right);
+        Py_DECREF(left);
+    }
+    Py_DECREF(right);
+    SET_TOP(sum); // 将结果压入栈中
+    if (sum == NULL)
+        goto error;
+    DISPATCH();
+}
+```
+
+最后执行 RETURN_VALUE 指令将栈空间结果返回。
+
+## 总结
+
+在本篇文章当中主要介绍了 cpython 当中的函数执行的时候的栈帧结构，这里面包含的程序执行时候所需要的一些必要的变量，比如说全局变量，python 内置的一些对象等等，同时需要注意的是 python 在查询对象的时候如果本地 f_locals 没有找到就会去全局 f_globals 找，如果还没有找到就会去 f_builtins 里面的找，当一个程序返回的时候就会找到 f_back 他上一个执行的栈帧，将其设置成当前线程正在使用的栈帧，这就完成了函数的调用返回，关于这个栈帧还有一些其他的字段我们没有谈到在后续的文章当中将继续深入其中一些字段。
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
