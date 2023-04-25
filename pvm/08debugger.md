@@ -404,3 +404,4 @@ python 官方的调试器为 pdb 这个是 python 标准库自带的，我们可
 更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
 
 关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+![](../qrcode2.jpg)
