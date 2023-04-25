@@ -6,3 +6,4 @@ build/*
 .idea/
 *.ttf
 nowatermark/*
+*.mp4
