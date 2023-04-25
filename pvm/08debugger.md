@@ -1,4 +1,4 @@
-# 深入理解python虚拟机：python 调试器实现原理与调试器源码分析
+# 深入理解python虚拟机：调试器实现原理与源码分析
 
 调试器是一个编程语言非常重要的部分，调试器是一种用于诊断和修复代码错误（或称为 bug）的工具，它允许开发者在程序执行时逐步查看和分析代码的状态和行为，它可以帮助开发者诊断和修复代码错误，理解程序的行为，优化性能。无论在哪种编程语言中，调试器都是一个强大的工具，对于提高开发效率和代码质量都起着积极的作用。
 
@@ -161,3 +161,233 @@ debugging line:         for j in range(1, i + 1):
 ![debugger](../images/debugger.gif)
 
 可以看到我们的程序真正的被调试起来了。
+
+现在我们来分析一下我们自己实现的简易版本的调试器，在前文当中我们已经提到了 sys.settrace 函数，调用这个函数时需要传递一个函数作为参数，被传入的函数需要接受三个参数：
+
+- frame，当前正在执行的栈帧。
+- event，事件的类别，这一点在前面的文件当中已经提到了。
+- arg，参数这一点在前面也已经提到了。
+
+- 同时需要注意的是这个函数也需要有一个返回值，python 虚拟机在下一次事件发生的时候会调用返回的这个函数，如果返回 None  那么就不会在发生事件的时候调用 tracing 函数了，这是代码当中为什么在 debug 返回 debug 的原因。
+
+我们只对 line 这个事件进行处理，然后进行死循环，只有输入 n 指令的时候才会执行下一行，然后打印正在执行的行，这个时候就会退出函数 debug ，程序就会继续执行了。python 内置的 eval 函数可以获取变量的值。
+
+## python 官方调试器源码分析
+
+python 官方的调试器为 pdb 这个是 python 标准库自带的，我们可以通过 `python -m pdb xx.py` 去调试文件 xx.py 。这里我们只分析核心代码：
+
+代码位置：bdp.py 下面的 BDP 类
+
+```python
+    def run(self, cmd, globals=None, locals=None):
+        """Debug a statement executed via the exec() function.
+
+        globals defaults to __main__.dict; locals defaults to globals.
+        """
+        if globals is None:
+            import __main__
+            globals = __main__.__dict__
+        if locals is None:
+            locals = globals
+        self.reset()
+        if isinstance(cmd, str):
+            cmd = compile(cmd, "<string>", "exec")
+        sys.settrace(self.trace_dispatch)
+        try:
+            exec(cmd, globals, locals)
+        except BdbQuit:
+            pass
+        finally:
+            self.quitting = True
+            sys.settrace(None)
+```
+
+上面的函数主要是使用 sys.settrace 函数进行 tracing 操作，当有事件发生的时候就能够捕捉了。在上面的代码当中 tracing 函数为 self.trace_dispatch 我们再来看这个函数的代码：
+
+```python
+    def trace_dispatch(self, frame, event, arg):
+        """Dispatch a trace function for debugged frames based on the event.
+
+        This function is installed as the trace function for debugged
+        frames. Its return value is the new trace function, which is
+        usually itself. The default implementation decides how to
+        dispatch a frame, depending on the type of event (passed in as a
+        string) that is about to be executed.
+
+        The event can be one of the following:
+            line: A new line of code is going to be executed.
+            call: A function is about to be called or another code block
+                  is entered.
+            return: A function or other code block is about to return.
+            exception: An exception has occurred.
+            c_call: A C function is about to be called.
+            c_return: A C function has returned.
+            c_exception: A C function has raised an exception.
+
+        For the Python events, specialized functions (see the dispatch_*()
+        methods) are called.  For the C events, no action is taken.
+
+        The arg parameter depends on the previous event.
+        """
+        if self.quitting:
+            return # None
+        if event == 'line':
+            print("In line")
+            return self.dispatch_line(frame)
+        if event == 'call':
+            print("In call")
+            return self.dispatch_call(frame, arg)
+        if event == 'return':
+            print("In return")
+            return self.dispatch_return(frame, arg)
+        if event == 'exception':
+            print("In execption")
+            return self.dispatch_exception(frame, arg)
+        if event == 'c_call':
+            print("In c_call")
+            return self.trace_dispatch
+        if event == 'c_exception':
+            print("In c_exception")
+            return self.trace_dispatch
+        if event == 'c_return':
+            print("In c_return")
+            return self.trace_dispatch
+        print('bdb.Bdb.dispatch: unknown debugging event:', repr(event))
+        return self.trace_dispatch
+```
+
+从上面的代码当中可以看到每一种事件都有一个对应的处理函数，在本文当中我们主要分析 函数 dispatch_line，这个处理 line 事件的函数。
+
+```python
+    def dispatch_line(self, frame):
+        """Invoke user function and return trace function for line event.
+
+        If the debugger stops on the current line, invoke
+        self.user_line(). Raise BdbQuit if self.quitting is set.
+        Return self.trace_dispatch to continue tracing in this scope.
+        """
+        if self.stop_here(frame) or self.break_here(frame):
+            self.user_line(frame)
+            if self.quitting: raise BdbQuit
+        return self.trace_dispatch
+```
+
+这个函数首先会判断是否需要在当前行停下来，如果需要停下来就需要进入 user_line 这个函数，后面的调用链函数比较长，我们直接看最后执行的函数，根据我们使用 pdb 的经验来看，最终肯定是一个 while 循环让我们可以不断的输入指令进行处理：
+
+```python
+    def cmdloop(self, intro=None):
+        """Repeatedly issue a prompt, accept input, parse an initial prefix
+        off the received input, and dispatch to action methods, passing them
+        the remainder of the line as argument.
+
+        """
+        print("In cmdloop")
+        self.preloop()
+        if self.use_rawinput and self.completekey:
+            try:
+                import readline
+                self.old_completer = readline.get_completer()
+                readline.set_completer(self.complete)
+                readline.parse_and_bind(self.completekey+": complete")
+            except ImportError:
+                pass
+        try:
+            if intro is not None:
+                self.intro = intro
+            print(f"{self.intro = }")
+            if self.intro:
+                self.stdout.write(str(self.intro)+"\n")
+            stop = None
+            while not stop:
+                print(f"{self.cmdqueue = }")
+                if self.cmdqueue:
+                    line = self.cmdqueue.pop(0)
+                else:
+                    print(f"{self.prompt = } {self.use_rawinput}")
+                    if self.use_rawinput:
+                        try:
+                            # 核心逻辑就在这里 不断的要求输入然后进行处理
+                            line = input(self.prompt) # self.prompt = '(Pdb)'
+                        except EOFError:
+                            line = 'EOF'
+                    else:
+                        self.stdout.write(self.prompt)
+                        self.stdout.flush()
+                        line = self.stdin.readline()
+                        if not len(line):
+                            line = 'EOF'
+                        else:
+                            line = line.rstrip('\r\n')
+
+                line = self.precmd(line)
+                stop = self.onecmd(line) # 这个函数就是处理我们输入的字符串的比如 p n 等等
+                stop = self.postcmd(stop, line)
+            self.postloop()
+        finally:
+            if self.use_rawinput and self.completekey:
+                try:
+                    import readline
+                    readline.set_completer(self.old_completer)
+                except ImportError:
+                    pass
+```
+
+```python
+    def onecmd(self, line):
+        """Interpret the argument as though it had been typed in response
+        to the prompt.
+
+        This may be overridden, but should not normally need to be;
+        see the precmd() and postcmd() methods for useful execution hooks.
+        The return value is a flag indicating whether interpretation of
+        commands by the interpreter should stop.
+
+        """
+        cmd, arg, line = self.parseline(line)
+        if not line:
+            return self.emptyline()
+        if cmd is None:
+            return self.default(line)
+        self.lastcmd = line
+        if line == 'EOF' :
+            self.lastcmd = ''
+        if cmd == '':
+            return self.default(line)
+        else:
+            try:
+                # 根据下面的代码可以分析了解到如果我们执行命令 p 执行的函数为 do_p
+                func = getattr(self, 'do_' + cmd)
+            except AttributeError:
+                return self.default(line)
+            return func(arg)
+```
+
+现在我们再来看一下 do_p 打印一个表达式是如何实现的：
+
+```python
+    def do_p(self, arg):
+        """p expression
+        Print the value of the expression.
+        """
+        self._msg_val_func(arg, repr)
+
+    def _msg_val_func(self, arg, func):
+        try:
+            val = self._getval(arg)
+        except:
+            return  # _getval() has displayed the error
+        try:
+            self.message(func(val))
+        except:
+            self._error_exc()
+
+    def _getval(self, arg):
+        try:
+            # 看到这里就破案了这不是和我们自己实现的 pdb 获取变量的方式一样嘛 都是
+            # 使用当前执行栈帧的全局和局部变量交给 eval 函数处理 并且将它的返回值输出
+            return eval(arg, self.curframe.f_globals, self.curframe_locals)
+        except:
+            self._error_exc()
+            raise
+```
+
