@@ -1,4 +1,4 @@
-# 深入理解python虚拟机：python 调试器实现原理
+# 深入理解python虚拟机：python 调试器实现原理与调试器源码分析
 
 调试器是一个编程语言非常重要的部分，调试器是一种用于诊断和修复代码错误（或称为 bug）的工具，它允许开发者在程序执行时逐步查看和分析代码的状态和行为，它可以帮助开发者诊断和修复代码错误，理解程序的行为，优化性能。无论在哪种编程语言中，调试器都是一个强大的工具，对于提高开发效率和代码质量都起着积极的作用。
 
@@ -50,9 +50,13 @@ if __name__ == '__main__':
 (Pdb) 
 ```
 
-当然你也可以在 ide 当中进行调试：
+当然你也可以在 IDE 当中进行调试：
 
 ![76-debugger](../images/76-debugger.png)
+
+根据我们的调试经历容易知道，要想调试一个程序首先最重要的一点就是程序需要在我们设置断点的位置要能够停下来
+
+## cpython 王炸机制 —— tracing
 
 现在的问题是，上面的程序是怎么在程序执行时停下来的呢？
 
@@ -60,7 +64,7 @@ if __name__ == '__main__':
 
 设置系统的跟踪函数，允许在 Python 中实现一个 Python 源代码调试器。该函数是线程特定的；为了支持多线程调试，必须对每个正在调试的线程注册一个跟踪函数，使用 settrace() 或者使用 threading.settrace() 。
 
-跟踪函数应该有三个参数：frame、event 和 arg。frame 是当前的栈帧。event 是一个字符串：'call'、'line'、'return'、'exception'或者'opcode'。arg 取决于事件类型。
+跟踪函数应该有三个参数：frame、event 和 arg。frame 是当前的栈帧。event 是一个字符串：'call'、'line'、'return'、'exception'、 'opcode' 、'c_call' 或者  'c_exception'。arg 取决于事件类型。
 
 **跟踪函数在每次进入新的局部作用域时被调用（事件设置为'call'）；它应该返回一个引用，用于新作用域的本地跟踪函数，或者如果不想在该作用域中进行跟踪，则返回None。**
 
@@ -70,15 +74,90 @@ if __name__ == '__main__':
 
 - call，调用了一个函数（或者进入了其他代码块）。调用全局跟踪函数；arg 为 None；返回值指定了本地跟踪函数。
 
-- line，将要执行一行新的代码。
+- line，将要执行一行新的代码，参数 arg 的值为 None 。
 
-- return，函数（或其他代码块）即将返回。调用本地跟踪函数；arg是将要返回的值，如果事件是由引发的异常引起的，则arg为None。跟踪函数的返回值将被忽略。
+- return，函数（或其他代码块）即将返回。调用本地跟踪函数；arg 是将要返回的值，如果事件是由引发的异常引起的，则arg为None。跟踪函数的返回值将被忽略。
 
 - exception，发生了异常。调用本地跟踪函数；arg是一个元组（exception，value，traceback）；返回值指定了新的本地跟踪函数。
 
-- opcode，解释器即将执行新的操作码（有关操作码详细信息，请参见dis）。调用本地跟踪函数；arg为None；返回值指定了新的本地跟踪函数。默认情况下，不会发出每个操作码的事件：必须通过在帧上设置f_trace_opcodes为True来显式请求。
+- opcode，解释器即将执行新的字节码指令。调用本地跟踪函数；arg 为 None；返回值指定了新的本地跟踪函数。默认情况下，不会发出每个操作码的事件：必须通过在帧上设置 f_trace_opcodes 为 True 来显式请求。
 
 - c_call，一个 c 函数将要被调用。
 
 - c_exception，调用 c 函数的时候产生了异常。
 
+## 自己动手实现一个简单的调试器
+
+在本小节当中我们将实现一个非常简单的调试器帮助大家理解调试器的实现原理。调试器的实现代码如下所示，只有短短几十行却可以帮助我们深入去理解调试器的原理，我们先看一下实现的效果在后文当中再去分析具体的实现：
+
+```python
+
+import sys
+
+file = sys.argv[1]
+with open(file, "r+") as fp:
+    code = fp.read()
+lines = code.split("\n")
+
+
+def do_line(frame, event, arg):
+    print("debugging line:", lines[frame.f_lineno - 1])
+    return debug
+
+
+def debug(frame, event, arg):
+    if event == "line":
+        while True:
+            _ = input("(Pdb)")
+            if _ == 'n':
+                return do_line(frame, event, arg)
+            elif _.startswith('p'):
+                _, v = _.split()
+                v = eval(v, frame.f_globals, frame.f_locals)
+                print(v)
+            elif _ == 'q':
+                sys.exit(0)
+    return debug
+
+
+if __name__ == '__main__':
+    sys.settrace(debug)
+    exec(code, None, None)
+    sys.settrace(None)
+```
+
+在上面的程序当中使用如下：
+
+- 输入 n 执行当前行，也就是执行一行代码。
+- p name 打印变量 name 。
+- q 退出调试。
+
+现在我们执行上面的程序，进行程序调试：
+
+```bash
+(py3.10) ➜  pdb_test git:(master) ✗ python mydebugger.py pdbusage.py
+(Pdb)n
+debugging line: def m99():
+(Pdb)n
+debugging line: if __name__ == '__main__':
+(Pdb)n
+debugging line:     m99()
+(Pdb)n
+debugging line:     for i in range(1, 10):
+(Pdb)n
+debugging line:         for j in range(1, i + 1):
+(Pdb)n
+debugging line:             print(f"{i}x{j}={i*j}", end='\t')
+1x1=1   (Pdb)n
+debugging line:         for j in range(1, i + 1):
+(Pdb)p i
+1
+(Pdb)p j
+1
+(Pdb)q
+(py3.10) ➜  pdb_test git:(master) ✗ 
+```
+
+![debugger](../images/debugger.gif)
+
+可以看到我们的程序真正的被调试起来了。
