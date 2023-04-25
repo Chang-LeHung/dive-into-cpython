@@ -23,7 +23,7 @@
 
 ### 程序执行
 - [深入理解python虚拟机：程序执行的载体——栈帧](pvm/07frameobject.md)
-- [深入理解python虚拟机：python 调试器实现原理](pvm/08debugger.md)
+- [深入理解python虚拟机：调试器实现原理与源码分析](pvm/08debugger.md)
 
 
 ## 给 cpython 添加 C 扩展模块
