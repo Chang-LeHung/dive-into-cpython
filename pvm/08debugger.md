@@ -176,7 +176,7 @@ debugging line:         for j in range(1, i + 1):
 
 python 官方的调试器为 pdb 这个是 python 标准库自带的，我们可以通过 `python -m pdb xx.py` 去调试文件 xx.py 。这里我们只分析核心代码：
 
-代码位置：bdp.py 下面的 BDP 类
+代码位置：bdp.py 下面的 Bdb 类
 
 ```python
     def run(self, cmd, globals=None, locals=None):
@@ -391,3 +391,16 @@ python 官方的调试器为 pdb 这个是 python 标准库自带的，我们可
             raise
 ```
 
+## 总结
+
+在本篇文章当中我们主要分析 python 当中实现调试器的原理，并且通过一个几十行的代码实现了一个非常简单的调试器，这可以深入帮助我们理解调试器实现的细节，这让我们对于程序设计语言的认识又加深了一点。
+
+还记得我们在讨论 frameobject 的时候有一个字段 f_trace 嘛，这个字段就是指向我们传递给 sys.settrace 的函数，当发生事件的时候虚拟机就会调用这个函数。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
