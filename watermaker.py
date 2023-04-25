@@ -12,6 +12,8 @@ def add_water_mark():
     with open("watermark.json", "r+") as fp:
         marked = set(json.load(fp))
     for image_path in os.listdir("images"):
+        if not image_path.endswith("png"):
+            continue
         filename = os.path.join("images", image_path)
         if image_path not in marked:
             print(f"move {image_path} to nowatermark directory")
