@@ -79,8 +79,6 @@ if __name__ == '__main__':
 
 从上面程序的输出结果可以知道，当使用一个非描述器的类属性的时候是不会调用对应的方法的，而是直接得到对应的对象。
 
-
-
 ## 描述器的实现原理
 
 描述器的实现原理可以用以下三个步骤来概括：
@@ -101,17 +99,19 @@ class Descriptor(object):
 
     def __set_name__(self, obj_type, attr_name):
         print(f"__set_name__ : {obj_type } {attr_name = }")
+        return "__set_name__"
 
     def __get__(self, obj, obj_type):
         print(f"__get__ : {obj = } { obj_type = }")
-        return getattr(obj, "value", None)
+        return "__get__"
 
     def __set__(self, instance, value):
         print(f"__set__ : {instance = } {value = }")
-        self.value = value
+        return "__set__"
 
     def __delete__(self, obj):
         print(f"__delete__ : {obj = }")
+        return "__delete__"
 
 
 class MyClass(object):
@@ -121,25 +121,27 @@ class MyClass(object):
 
 if __name__ == '__main__':
     a = MyClass()
-    print(a.des)
-    print(MyClass.des)
+    _ = MyClass.des
+    _ = a.des
     a.des = "hello"
     del a.des
+
 ```
 
 上面的代码输入结果如下所示：
 
 ```bash
 __set_name__ : <class '__main__.MyClass'> attr_name = 'des'
-__get__ : obj = <__main__.MyClass object at 0x10133df70>  obj_type = <class '__main__.MyClass'>
-None
 __get__ : obj = None  obj_type = <class '__main__.MyClass'>
-None
-__set__ : instance = <__main__.MyClass object at 0x10133df70> value = 'hello'
-__delete__ : obj = <__main__.MyClass object at 0x10133df70>
+__get__ : obj = <__main__.MyClass object at 0x1054abeb0>  obj_type = <class '__main__.MyClass'>
+__set__ : instance = <__main__.MyClass object at 0x1054abeb0> value = 'hello'
+__delete__ : obj = <__main__.MyClass object at 0x1054abeb0>
 ```
 
-
+- `__set_name__` 这个函数一共有两个参数传入的参数第一个参数是使用描述器的类，第二个参数是使用这个描述器的类当中使用的属性名字，在上面的例子当中就是 "des" 。
+- `__get__`，这个函数主要有两个参数，一个是使用属性的对象，另外一个是对象的类型，如果是直接使用类名使用属性的话，obj 就是 None，比如上面的 MyClass.des 。
+- `__set__`，这个函数主要有两个参数一个是对象，另外一个是需要设置的值。
+- `__delete__`，这函数有一个参数，就是传入的对象，比如 del a.des 传入的就是对象 a 。
 
 ## 描述器的应用场景
 
@@ -245,11 +247,55 @@ Calculating expensive data...
 
 从上面的结果可以看到，只有在第一次使用属性的时候才调用函数，后续再次调用函数将不会再调用函数而是直接返回缓存的结果。
 
-### 实现属性别名
+### 实现 ORM 映射
 
-描述器还可以用于实现属性别名。通过定义一个获取方法和一个设置方法，可以将一个属性绑定到另一个属性上。这使得可以在代码中使用不同的属性名称来访问相同的数据。
+ORM 的主要作用是把数据库中的关系数据转化为面向对象的数据，让开发者可以通过编写面向对象的代码来操作数据库。ORM 技术可以把面向对象的编程语言和关系数据库之间的映射关系抽象出来，开发者可以不用写 SQL 语句，而是直接使用面向对象的语法进行数据库操作。
 
-### 实现类属性的默认值
+我们现在需要实现一个功能，user.name 直接从数据库的 user 表当中查询 name 等于 user.name 的数据，user.name = "xxx" 根据 user 的主键 id 进行更新数据。这个功能我们就可以使用描述器实现，因为只需要了解如何使用描述器的，因此在下面的代码当中并没有连接数据库：
 
-描述器还可以用于实现类属性的默认值。通过在 `__get__` 方法中添加逻辑，可以在属性第一次被访问时设置默认值。这使得可以在属性被访问之前，确保其具有某些默认值。
+```python
+
+conn = dict()
+
+
+class Field:
+
+    def __set_name__(self, owner, name):
+        self.fetch = f'SELECT {name} FROM {owner.table} WHERE {owner.key}=?;'
+        print(f"{self.fetch = }")
+        self.store = f'UPDATE {owner.table} SET {name}=? WHERE {owner.key}=?;'
+        print(f"{self.store = }")
+
+    def __get__(self, obj, objtype=None):
+        return conn.execute(self.fetch, [obj.key]).fetchone()[0]
+
+    def __set__(self, obj, value):
+        conn.execute(self.store, [value, obj.key])
+        conn.commit()
+
+
+class User:
+    table = 'User'                    # Table name
+    key = 'id'                       # Primary key
+    name = Field()
+    age = Field()
+
+    def __init__(self, key):
+        self.key = key
+
+
+if __name__ == '__main__':
+    u = User("Bob")
+```
+
+上面的程序输出结果如下所示：
+
+```bash
+self.fetch = 'SELECT name FROM User WHERE id=?;'
+self.store = 'UPDATE User SET name=? WHERE id=?;'
+self.fetch = 'SELECT age FROM User WHERE id=?;'
+self.store = 'UPDATE User SET age=? WHERE id=?;
+```
+
+从上面的输出结果我们可以看到针对 name 和 age 两个字段的查询和更新语句确实生成了，当我们调用 u.name = xxx 或者 u.age = xxx 的时候就执行 `__set__` 函数，就会连接数据库进行响应的操作了。
 
