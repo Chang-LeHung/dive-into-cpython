@@ -3,7 +3,7 @@ class NonDescriptor(object):
     pass
 
 
-class MyClass():
+class MyClass(object):
 
     nd = NonDescriptor()
 
