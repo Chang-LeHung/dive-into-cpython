@@ -53,7 +53,31 @@ Getting Descriptor
 
 ```
 
-在这个例子中，我们首先创建了一个 MyClass 对象，并将其 x 属性设置为 1。然后，我们再次访问 x 属性时，会调用 `__get__` 方法并返回 1。最后，我们删除了 x 属性，并再次访问它时，会调用 `__get__` 方法并返回 None。
+在这个例子中，我们首先创建了一个 MyClass 对象，并将其 x 属性设置为 1。然后，我们再次访问 x 属性时，会调用 `__get__` 方法并返回 1。最后，我们删除了 x 属性，并再次访问它时，会调用 `__get__` 方法并返回 None。从上面的输出结果可以看到对应的方法都被调用了，这是符合上面对描述器的定义的。如果一个类对象不是描述器，那么是不会调用`__get__`、`__set__` 和 `__delete__`三个方法的。比如下面的代码：
+
+```python
+
+class NonDescriptor(object):
+    pass
+
+
+class MyClass():
+
+    nd = NonDescriptor()
+
+
+if __name__ == '__main__':
+    a = MyClass()
+    print(a.nd)
+```
+
+上面的代码输出结果如下所示：
+
+```python
+<__main__.NonDescriptor object at 0x1012cce20>
+```
+
+
 
 ## 描述器的实现原理
 
