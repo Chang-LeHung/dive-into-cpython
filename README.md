@@ -25,6 +25,9 @@
 - [深入理解python虚拟机：程序执行的载体——栈帧](pvm/07frameobject.md)
 - [深入理解python虚拟机：调试器实现原理与源码分析](pvm/08debugger.md)
 
+## 对象系统
+### python 类的黑魔法
+- [深入理解python虚拟机：黑科技的幕后英雄——描述器](obsy/01class.md)
 
 ## 给 cpython 添加 C 扩展模块
 
