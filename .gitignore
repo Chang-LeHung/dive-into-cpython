@@ -12,3 +12,6 @@ md2latex.py
 *.fdb*
 *.fls
 *.log
+*.out
+*.pdf
+*.toc
