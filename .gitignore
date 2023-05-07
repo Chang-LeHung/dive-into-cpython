@@ -4,7 +4,7 @@ build/*
 *.json
 *idea*/*
 .idea/
-*.ttf
+#*.ttf
 nowatermark/*
 *.mp4
 md2latex.py
