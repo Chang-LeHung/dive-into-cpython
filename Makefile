@@ -1,0 +1,4 @@
+
+
+all:
+	xelatex main.tex
