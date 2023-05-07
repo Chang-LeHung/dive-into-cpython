@@ -5,3 +5,6 @@
 .idea
 *.ttf
 *.json
+*.out
+*.pdf
+*.toc
