@@ -1,5 +1,5 @@
 \chapter{深入理解程序的执行}
-\section{深入理解 python 虚拟机：pyc 文件结构}
+\section{pyc 文件结构}
 在本小节当中主要给大家介绍一下 .py 文件在被编译之后对应的 pyc 文件结构，pyc 文件当中的一个核心内容就是 python 字节码。
 \subsection{pyc 文件}
 pyc 文件是 Python 在解释执行源代码时生成的一种字节码文件，它包含了源代码的编译结果和相关的元数据信息，以便于 Python 可以更快地加载和执行代码。
@@ -36,7 +36,7 @@ demo.cpython-310.pyc  hello.cpython-310.pyc
 
     \begin{figure}[h]
         \centering
-            \includegraphics[scale=.25]{images/38-pyc.png}
+            \includegraphics[scale=.35]{images/38-pyc.png}
 						\caption{ }
         \label{fig:my_label}
     \end{figure}
@@ -45,15 +45,18 @@ demo.cpython-310.pyc  hello.cpython-310.pyc
 
     \begin{figure}[h]
         \centering
-            \includegraphics[scale=.25]{images/37-pyc.png}
+            \includegraphics[scale=.3]{images/37-pyc.png}
 						\caption{ }
         \label{fig:my_label}
     \end{figure}
-    
-第一部分 魔术是由一个 2 字节的整数和另外两个字符回车换行组成的， "\\r\\n" 也占用两个字节，一共是四个字节。这个两个字节的整数在不同的 python 版本还不一样，比如说在 python3.5 当中这个值为 3351 等值，在 python3.9 当中这个值为 3420，3421，3422，3423，3424等值（在 python 3.9 的小版本）。
-第二部分 Bit Field 这个字段的主要作用是为了将来能够实现复现编译结果，但是在 python3.9a2 时，这个字段的值还全部是 0 。详细内容可以参考 [PEP552-Deterministic pycs](https://peps.python.org/pep-0552/) 。这个字段在 python2 和 python3 早期版本并没有（python3.5 还没有），在 python3 的后期版本这个字段才出现的。
+第一部分 魔术是由一个 2 字节的整数和另外两个字符回车换行组成的， \verb|"\r\n"|  也占用两个字节，一共是四个字节。这个两个字节的整数在不同的 python 版本还不一样，比如说在 python3.5 当中这个值为 3351 等值，在 python3.9 当中这个值为 3420，3421，3422，3423，3424等值（在 python 3.9 的小版本）。
+
+第二部分 Bit Field 这个字段的主要作用是为了将来能够实现复现编译结果，但是在 python3.9a2 时，这个字段的值还全部是 0 。详细内容可以参考 [PEP552-Deterministic pycs]\footnote{\href{https://peps.python.org/pep-0552/}{https://peps.python.org/pep-0552/}} 。这个字段在 python2 和 python3 早期版本并没有（python3.5 还没有），在 python3 的后期版本这个字段才出现的。
+
 第三部分 就是整个 py  源文件的大小了。
+
 第四部分 也是整个 pyc 文件当中最重要的一个部分，最后一个部分就是一个 CodeObject 对象序列化之后的数据，我们稍后再来仔细分析一下这个对象相关的数据。
+
 我们现在来具体分析一个 pyc 文件，对应的 python 代码为：
 \begin{lstlisting}[style=py,caption=, language=Python]
 
