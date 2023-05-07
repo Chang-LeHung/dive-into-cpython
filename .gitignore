@@ -8,3 +8,7 @@ build/*
 nowatermark/*
 *.mp4
 md2latex.py
+*.aux
+*.fdb*
+*.fls
+*.log
