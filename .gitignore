@@ -15,3 +15,5 @@ md2latex.py
 *.out
 *.pdf
 *.toc
+*gz
+.vscode/
