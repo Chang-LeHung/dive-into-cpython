@@ -7,3 +7,4 @@ build/*
 *.ttf
 nowatermark/*
 *.mp4
+md2latex.py
