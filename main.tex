@@ -1,0 +1,180 @@
+\documentclass[11pt]{book}
+
+% 导入需要的宏包
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+% \usepackage[twoside,asymmetric,left=1in,right=1.5in,top=1in,bottom=1in]{geometry}
+
+\usepackage{geometry}
+\geometry{
+  left=3cm, % 偶数页左边距
+  right=3cm, % 偶数页右边距
+  top=2cm, % 偶数页上边距
+  bottom=2cm, % 偶数页下边距
+  bindingoffset=1cm, % 装订线偏移量
+  includeheadfoot, % 包括页眉页脚在内
+}
+
+\usepackage{enumitem}
+
+\usepackage{titlesec}
+\usepackage{lipsum}
+\usepackage{ctex}
+\usepackage{multicol}
+\usepackage{authblk}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{fontspec}
+% 设置页眉页脚
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{\thepage}
+\fancyhead[LO]{\slshape \rightmark}
+\fancyhead[RE]{\slshape \leftmark}
+
+% 设置章节标题样式
+\titleformat{\chapter}[display]
+{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{15pt}{\Huge}
+
+% 设置定理环境样式
+\newtheoremstyle{mytheoremstyle}%
+  {12pt}% space above
+  {12pt}% space below
+  {}% body font
+  {}% indent amount
+  {\bfseries}% theorem head font
+  {.}% punctuation after theorem head
+  {.5em}% space after theorem head
+  {}% theorem head spec
+\theoremstyle{mytheoremstyle}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{lemma}{Lemma}[chapter]
+\newtheorem{corollary}{Corollary}[chapter]
+\renewcommand{\chaptermark}[1]{\markboth{\textcolor{blue}{\textbf{\large{深入理解 python 虚拟机}}} \ \ \ #1}{}}
+
+% 设置文档标题
+\title{\textbf{深入理解 python 虚拟机}}
+\author{changlehung \affil{单位1}}
+\date{\today}
+
+\setmainfont{Times New Roman}
+\setmonofont{Courier}
+
+
+\definecolor{mygreen}{rgb}{0.1,0.5,0.1}
+\definecolor{myblue}{rgb}{0.1,0.1,0.7}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\color{black},
+    keywordstyle=\color{purple},
+    commentstyle=\color{blue},
+    stringstyle=\color{mygreen},
+    % frame=single,
+    % framerule=1pt,
+    % framexleftmargin=5pt,
+    % framexrightmargin=5pt
+}
+
+\lstdefinestyle{py}{
+  % basicstyle=\ttfamily\color{black},
+  basicstyle=\fontsize{8}{8}\ttfamily,
+  frame=tb,
+  framextopmargin=2pt,
+  framexbottommargin=2pt,
+  framexleftmargin=0.5em,
+  framexrightmargin=0.5em,
+  rulecolor=\color{blue!80!black},
+  showstringspaces=false,
+  keywordstyle=\color{purple},
+  commentstyle=\color{blue},
+  stringstyle=\color{mygreen},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=4,
+  language=Python
+}
+
+
+\lstdefinestyle{cpp}{
+  % basicstyle=\ttfamily\color{black},
+  basicstyle=\fontsize{8}{8}\ttfamily,
+  frame=tb,
+  framextopmargin=2pt,
+  framexbottommargin=2pt,
+  framexleftmargin=0.5em,
+  framexrightmargin=0.5em,
+  rulecolor=\color{blue!80!black},
+  showstringspaces=false,
+  keywordstyle=\color{purple},
+  commentstyle=\color{myblue},
+  stringstyle=\color{mygreen},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=2,
+  language=C++
+}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+
+\usepackage{caption}
+
+% 设置 caption label 格式
+\DeclareCaptionLabelFormat{code}{代码 #2}
+
+% 设置 lstlisting 的 caption 标签为 "code"
+\captionsetup[lstlisting]{labelformat=code}
+\captionsetup[lstlisting]{font=normalsize}
+
+\newcommand{\cppcode}[1]{\begin{lstlisting}[style=cpp,language=C++]
+#1
+\end{lstlisting}}
+
+
+
+\begin{document}
+
+\begin{titlepage}
+    \begin{center}
+        \vspace{3cm}
+        {\Huge\textbf{深入理解 python 虚拟机}}
+        
+        \vspace{1cm}
+        {\Large{changlehung}}
+        
+        \vspace{1cm}
+        {\large{https://github.com/Chang-LeHung}}
+    
+        \vspace{3cm}
+        {\Large{公众号：一无是处的研究僧}}
+    \end{center}
+\end{titlepage}
+
+
+
+\tableofcontents
+
+\frontmatter % 前言部分
+
+\chapter{前言}
+写这本书就是一时兴起。
+
+\mainmatter % 正文部分
+
+\input{ch1}
+\input{ch2}
+\backmatter % 后记部分
+
+\chapter{后记}
+写这本书就是一时兴起。
+
+\end{document}
