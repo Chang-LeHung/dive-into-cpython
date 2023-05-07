@@ -2,3 +2,6 @@
 *.fdb*
 *.fls
 *.log
+.idea
+*.ttf
+*.json
