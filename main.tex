@@ -55,7 +55,6 @@
 \newtheorem{theorem}{Theorem}[chapter]
 \newtheorem{lemma}{Lemma}[chapter]
 \newtheorem{corollary}{Corollary}[chapter]
-\renewcommand{\chaptermark}[1]{\markboth{\textcolor{myblue}{\textbf{\large{深入理解 python 虚拟机}}} \ \ \ #1}{}}
 
 % 设置文档标题
 \title{\textbf{深入理解 python 虚拟机}}
@@ -142,9 +141,19 @@
 #1
 \end{lstlisting}}
 
+% \fancypagestyle{myheader}{%
+%     \fancyhf{} % 清空页眉和页脚
+%     \fancyhead[L]{\nouppercase{\leftmark}} % 设置左侧页眉，\nouppercase 表示不大写
+%     \fancyhead[R]{\normalfont\thepage} % 设置右侧页眉，\normalfont 表示不倾斜
+% }
 
+\renewcommand{\chaptermark}[1]{\markboth{\textcolor{myblue}{\textbf{\large{深入理解 python 虚拟机}}} \ \ \ #1}{}}
+% \renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}} % 设置当前小节名
+% \titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{1em}{}
+% \fancyhead[R]{\rightmark} % 设置右侧页眉为当前小节名
 
 \begin{document}
+% \pagestyle{myheader}
 
 \begin{titlepage}
     \vspace{5pt}
