@@ -106,9 +106,9 @@ class Temperature:
         return (self._celsius * 9/5) + 32
 ```
 
-在这个示例中，我们定义了一个 Temperature 类，它包含一个 celsius 属性和一个 fahrenheit 属性。celsius 属性是一个普通的属性，可以直接访问和设置。而 fahrenheit 属性是一个计算属性，它基于 celsius 属性计算而来。当你访问 fahrenheit 属性时，它将自动计算出相应的华氏度并返回。
+在这个示例中，我们定义了一个 Temperature 类，它包含一个 celsius 属性和一个 fahrenheit 属性。celsius 属性是一个普通的属性，可以直接访问和设置。而 fahrenheit 属性是一个计算属性，它基于 celsius 属性计算而来。当你访问 fahrenheit 属性时，它将自动计算出相应的华氏度并返回。你可以会对上面的代码有点疑惑`celsius.setter` 是什么，他是那里来的，事实上在它上面的 `@property` 执行之后 celsius 已经不再是一个函数了，而是一个 property 的类产生的对象了，因此 `celsius.setter` 是 property 类中的 `setter` 属性了，事实上他是一个类的方法了，而装饰器 `@celsius.setter` 就是将 `def celsius(self, value)` 这个函数作为参数传递给方法 `celsius.setter`。
 
-我们介绍了 Python 中的 property 装饰器，它允许你将方法封装为属性，并在访问或设置属性时执行额外的操作。通过使用 property 装饰器，你可以编写更加简洁、优雅和可读的代码，同时使代码更加健壮和可靠。在你的下一个 Python 项目中，尝试使用 property 装饰器来定义属性，并享受它带来的便利吧！
+我们介绍了 Python 中的 property 装饰器，它允许你将方法封装为属性，并在访问或设置属性时执行额外的操作。通过使用 property 装饰器，你可以编写更加简洁、优雅和可读的代码，同时使代码更加健壮和可靠。在你的下一个 Python 项目中，尝试使用 property 装饰器来定义属性，并享受它带来的便利！
 
 ### property 的本质
 
