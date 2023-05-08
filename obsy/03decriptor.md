@@ -279,3 +279,19 @@ def object_getattribute(obj, name):
     raise AttributeError(name)
 ```
 
+仔细分析上面的 python 代码，他的整个逻辑和我们前面分析的 c 代码的逻辑是一样的。首先是获取对象的类型，然后从类型当中获取名字为 name 的属性，如果类属性定义了 `__get__` 函数，则需要进行描述器的判断，否则直接从对象的 `__dict__` 当中获取，如果其中没有则返回类对象。
+
+## 总结
+
+在本篇文章当中主要给大家深入分析了在 cpython 的内部对于描述器的实现原理，其中最重要的就是在获取属性的时候的优先级了。我们直接从 c 代码的层面分析了整个获取属性的优先级，并且给出了 python 层面的代码帮助大家理解。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
+![](../qrcode2.jpg)
+
