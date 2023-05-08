@@ -55,7 +55,7 @@
 \newtheorem{theorem}{Theorem}[chapter]
 \newtheorem{lemma}{Lemma}[chapter]
 \newtheorem{corollary}{Corollary}[chapter]
-\renewcommand{\chaptermark}[1]{\markboth{\textcolor{blue}{\textbf{\large{深入理解 python 虚拟机}}} \ \ \ #1}{}}
+\renewcommand{\chaptermark}[1]{\markboth{\textcolor{myblue}{\textbf{\large{深入理解 python 虚拟机}}} \ \ \ #1}{}}
 
 % 设置文档标题
 \title{\textbf{深入理解 python 虚拟机}}
@@ -129,7 +129,8 @@
 }
 
 \usepackage{caption}
-
+% 设置 itemize 的格式 每行之间没有额外的空格
+\setlist[itemize]{noitemsep, topsep=0pt, leftmargin=3.5em, label=$\bullet$}
 % 设置 caption label 格式
 \DeclareCaptionLabelFormat{code}{代码 #2}
 

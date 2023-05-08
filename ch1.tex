@@ -45,6 +45,7 @@ typedef struct _object {
     
 现在来解释一下上面的各个字段的含义：
 \begin{itemize}
+\setlength{\itemsep}{0pt}
 \item Py\_ssize\_t，一个整型数据类型。 
 \item ob\_refcnt，表示对象的引用记数的个数，这个对于垃圾回收很有用处，后面我们分析虚拟机中垃圾回收部分在深入分析。 
 \item ob\_type，表示这个对象的数据类型是什么，在 python 当中有时候需要对数据的数据类型进行判断比如 isinstance, type 这两个关键字就会使用到这个字段。 
@@ -649,7 +650,7 @@ PyTuple_New(Py_ssize_t size)
 \begin{itemize}
 \item 查看 free\_list 当中是否已经存在空闲的元组，如果有则直接进行返回。 
 \item 如果没有，则进行内存分配，然后将申请的内存空间进行初始化操作。 
-\item 如果 size == 0，则可以将新分配的元组对象放到 free\_list 当中。 
+\item 如果 \verb|size == 0|，则可以将新分配的元组对象放到 free\_list 当中。 
 \end{itemize}
 \subsubsection{查看元组的长度}
 这个功能比较简单，直接只用 cpython 当中的宏 Py\_SIZE 即可。他的宏定义为 \#define Py\_SIZE(ob) (((PyVarObject*)(ob))->ob\_size)。
