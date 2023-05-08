@@ -28,6 +28,7 @@
 ## 对象系统
 ### python 类的黑魔法
 - [深入理解python虚拟机：黑科技的幕后英雄——描述器](obsy/01class.md)
+- [深入理解python虚拟机：描述器的王炸应用](obsy/02application.md)
 
 ## 给 cpython 添加 C 扩展模块
 
