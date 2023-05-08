@@ -385,3 +385,37 @@ obj.class_method()
 ```
 
 在这个示例中，我们定义了一个 MyClass 类，并分别定义了静态方法和类方法。在调用静态方法时，我们可以使用类名或实例名进行调用，因为静态方法与类或实例无关。而在调用类方法时，我们必须使用类名或实例名进行调用，并且类方法可以访问类变量。总的来说，staticmethod 和 classmethod 是 Python 中两个非常有用的装饰器，它们可以帮助我们更好地组织和管理代码。需要根据实际情况来选择使用哪种装饰器，以便实现最佳的代码设计和可维护性。
+
+同样的道理我们可以实现自己的 ClassMethod
+
+```python
+class ClassMethod:
+    "Emulate PyClassMethod_Type() in Objects/funcobject.c"
+
+    def __init__(self, f):
+        self.f = f
+        functools.update_wrapper(self, f)
+
+    def __get__(self, obj, cls=None):
+        if cls is None:
+            cls = type(obj)
+        return MethodType(self.f, cls)
+```
+
+我们对上面的代码进行测试：
+
+```python
+class Myclass:
+
+    @ClassMethod
+    def demo(cls):
+        return "demo"
+
+
+if __name__ == '__main__':
+    a = Myclass()
+    print(a.demo())
+```
+
+上面的代码可以正确的输出字符串`"demo"` 。
+
