@@ -58,12 +58,30 @@ print(rect.height)
 print(rect.area)
 ```
 
+输出结果：
+
+```bash
+10
+20
+200
+```
+
 你也可以像下面这样设置属性的值：
 
 ```python
 rect.width = 5
 rect.height = 10
+print(rect.width)
+print(rect.height)
 print(rect.area)
+```
+
+输出结果如下所示：
+
+```basj
+5
+10
+50
 ```
 
 在设置 width 或 height 属性的值时，会执行对应的 setter 方法进行类型检查和范围检查。如果值不符合要求，将会抛出一个 ValueError 异常。这使得你的代码更加健壮和可靠。
@@ -92,3 +110,43 @@ class Temperature:
 
 我们介绍了 Python 中的 property 装饰器，它允许你将方法封装为属性，并在访问或设置属性时执行额外的操作。通过使用 property 装饰器，你可以编写更加简洁、优雅和可读的代码，同时使代码更加健壮和可靠。在你的下一个 Python 项目中，尝试使用 property 装饰器来定义属性，并享受它带来的便利吧！
 
+### property 的本质
+
+property 是 python 内置的一个类，注意它是类。在前面的内容当中我们已经详细讨论过了装饰器的原理，并且从字节码的角度进行了分析。因此我们可以很容易理解上面 `Temperature` 类。我们可以将装饰器展开：
+
+```python
+class Temperature:
+    def __init__(self, celsius):
+        self._celsius = celsius
+
+    def celsius1(self):
+        return self._celsius
+
+    celsius = property(celsius1)
+
+    def celsius2(self, value):
+        self._celsius = value
+
+    celsius = celsius.setter(celsius2)
+
+    def fahrenheit(self):
+        return (self._celsius * 9 / 5) + 32
+
+    fahrenheit = property(fahrenheit)
+
+
+if __name__ == '__main__':
+    t = Temperature(10)
+    print(t.celsius)
+    t.celsius = 100
+    print(t.celsius)
+    print(t.fahrenheit)
+```
+
+上面的程序输出结果如下所示：
+
+```bash
+10
+100
+212.0
+```
