@@ -14,11 +14,12 @@
   bindingoffset=1cm, % 装订线偏移量
   includeheadfoot, % 包括页眉页脚在内
 }
-
+\usepackage{float}
 \usepackage{enumitem}
-
+\usepackage{epigraph} 
 \usepackage{titlesec}
 \usepackage{lipsum}
+\usepackage{xcolor}
 \usepackage{ctex}
 \usepackage{multicol}
 \usepackage{authblk}
@@ -146,7 +147,7 @@
 
 \begin{titlepage}
     \begin{center}
-        \vspace{3cm}
+        \vspace{8cm}
         {\Huge\textbf{深入理解 python 虚拟机}}
         
         \vspace{1cm}
@@ -158,6 +159,8 @@
         \vspace{3cm}
         {\Large{公众号：一无是处的研究僧}}
     \end{center}
+    \vspace{5cm}
+    \epigraph{{\color{myblue} What I can not create, I do not understand!}}{\textbf{Richard Feynman}}
 \end{titlepage}
 
 

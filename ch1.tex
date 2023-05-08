@@ -36,7 +36,7 @@ typedef struct _object {
 \end{lstlisting}
 将上面的结构体展开之后，PyListObject 的结构大致如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.5]{images/01-list.png}
             \caption{列表的字段结构}
@@ -51,14 +51,14 @@ typedef struct _object {
 \item ob\_size，这个字段表示这个列表当中有多少个元素。 
 \item ob\_item，这是一个指针，指向真正保存 python 对象数据的地址，大致的内存他们之间大致的内存布局如下所示： 
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/02-list.png}
         \caption{列表数据的内存大致布局}
         \label{fig:my_label}
     \end{figure}
     
-\item allocated，这个表示在进行内存分配的时候，一共分配了多少个 (PyObject *) ，真实分配的内存空间为 `allocated * sizeof(PyObject *)`。 
+\item allocated，这个表示在进行内存分配的时候，一共分配了多少个 (PyObject *) ，真实分配的内存空间为 \verb|allocated * sizeof(PyObject *)|。 
 \end{itemize}
 \subsection{列表操作函数源代码分析}
 \subsubsection{创建列表}
@@ -236,7 +236,7 @@ $$
 newsize \approx size \cdot (size + 1)^{\frac{1}{8}}
 $$
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/03-list.png}
             \caption{列表数据容量变化图}
@@ -246,7 +246,7 @@ $$
 \subsubsection{列表的插入函数 insert}
 在列表当中插入一个数据比较简单，只需要将插入位置和其后面的元素往后移动一个位置即可，整个过程如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/04-list.png}
             \caption{ }
@@ -312,7 +312,7 @@ ins1(PyListObject *self, Py_ssize_t where, PyObject *v)
 \subsubsection{列表的删除函数 remove}
 对于数组 ob\_item 来说，删除一个元素就需要将这个元素后面的元素往前移动，因此整个过程如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/05-list.png}
             \caption{ }
@@ -350,7 +350,7 @@ data.remove(1)
 \end{lstlisting}
 下面是整个修改内容和报错结果：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/06-list.png}
             \caption{ }
@@ -431,7 +431,7 @@ list_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh)
 \end{lstlisting}
 下图就是使用 a.copy() 浅拷贝的时候，内存的布局的示意图，可以看到列表指向的对象数组发生了变化，但是数组中元素指向的 python 对象并没有发生变化。
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/07-list.png}
             \caption{ }
@@ -440,7 +440,7 @@ list_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh)
     
 下面是对列表对象进行深拷贝的时候内存的大致示意图，可以看到数组指向的 python 对象也是不一样的。
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/08-list.png}
             \caption{ }
@@ -552,7 +552,7 @@ typedef struct _object {
 \end{lstlisting}
 从上面的数据结构来看和 list 的数据结构基本上差不多，最终的使用方法也差不多。将上面的结构体展开之后，PyTupleObject 的结构大致如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.5]{images/09-tuple.png}
             \caption{ }
@@ -567,7 +567,7 @@ typedef struct _object {
 \item ob\_size，这个字段表示这个元组当中有多少个元素。 
 \item ob\_item，这是一个指针，指向真正保存 python 对象数据的地址，大致的内存他们之间大致的内存布局如下所示： 
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/10-tuple.png}
             \caption{ }
@@ -757,7 +757,7 @@ done:
 \item 将元组指向的所有对象的引用计数减一。 
 \item 判断元组是否满足保存到 free\_list 当中的条件，如果满足就将他加入到 free\_list 当中去，否则回收这块内存。加入到 free\_list 当中整个元组当中 ob\_item 指向变化如下所示： 
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/11-tuple.png}
             \caption{ }
@@ -799,7 +799,7 @@ typedef struct {
 } PyDictKeyEntry;
 \end{lstlisting}
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/26-dict.png}
             \caption{ }
@@ -821,7 +821,7 @@ typedef struct {
 \end{itemize}
 整个哈希表的布局大致如下图所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.25]{images/27-dict.png}
             \caption{ }
@@ -1055,7 +1055,7 @@ typedef struct {
 \end{lstlisting}
 用图示的方式表示如下图所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.25]{images/31-bytes.png}
 						\caption{ }
@@ -1064,7 +1064,7 @@ typedef struct {
     
 所有的键值对都存储在 dk\_entries 数组当中，比如对于 "Hello" "World" 这个键值对存储过程如下所示，如果 "Hello" 的哈希值等于 8 ，那么计算出来对象在 dk\_entries 数组当中的下标位 0 。
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.25]{images/32-dict.png}
 						\caption{ }
@@ -1073,7 +1073,7 @@ typedef struct {
     
 在前面的文章当中我们谈到了，在 cpython 当中 dk\_entries 数组当中的一个对象占用 24 字节的内存空间，在 cpython 当中的负载因子是 $\frac{2}{3}$ 。而一个 entry 的大小是 24 个字节，如果 dk\_entries 的长度是 1024 的话，那么大概有 1024  / 3 * 24 = 8K 的内存空间是浪费的。为了解决这个问题，在新版的 cpython 当中采取了一个策略用于减少内存的使用。具体的设计如下图所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/33-dict.png}
 						\caption{ }
@@ -1083,7 +1083,7 @@ typedef struct {
 在新的字典当中 cpython 对于 dk\_entries 来说如果正常的哈希表的长度为 8 的话，因为负载因子是 $\frac{2}{3}$ 真正给 dk\_entries 分配的长度是 5 = 8 / 3，那么现在有一个问题就是如何根据不同的哈希值进行对象的存储。dk\_indices 就是这个作用的，他的长度和真正的哈希表的长度是一样的，dk\_indices 是一个整型数组这个数组保存的是要保存对象在 dk\_entries 当中的下标，比如在上面的例子当中 dk\_indices[7] = 0，就表示哈希值求余数之后的值等于 7，0 表示对象在 dk\_entries 当中的下标。
 现在我们再插入一个数据 "World" "Hello" 键值对，假设 "World" 的哈希值等于 8，那么对哈希值求余数之后等于 0 ，那么 dk\_indices[0] 就是保存对象在 dk\_entries 数组当中的下标的，图中对应的下标为 1 （因为 dk\_entries 数组当中的每个数据都要使用，因此直接递增即可，下一个对象来的话就保存在 dk\_entries 数组的第 3 个（下标为 2）位置）。
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/34-dict.png}
 						\caption{ }
@@ -1131,7 +1131,7 @@ dictkeys_get_index(const PyDictKeysObject *keys, Py_ssize_t i)
 }
 \end{lstlisting}
 现在来分析一下相关的内存使用情况：
-\begin{table}[]
+\begin{table}[H]
     \centering
         \begin{tabular}{|c|c|c|c|c|}
         \hline
@@ -1184,7 +1184,7 @@ static PyObject _dummy_struct;
 \end{lstlisting}
 上面的数据结果用图示如下图所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.5]{images/25-set.png}
             \caption{ }
@@ -1193,6 +1193,7 @@ static PyObject _dummy_struct;
     
 上面各个字段的含义如下所示：
 \begin{itemize}
+\setlength{\itemsep}{0mm}
 \item dummy entries ：如果在哈希表当中的数组原来有一个数据，如果我们删除这个 entry 的时候，对应的位置就会被赋值成 dummy，与 dummy 有关的定义在上面的代码当中已经给出，dummy 对象的哈希值等于 -1。 
 \item 明白 dummy 的含义之后，fill 和 used 这两个字段的含义就比较容易理解了，used 就是数组当中真实有效的对象的个数，fill 还需要加上 dummy 对象的个数。 
 \item mask，数组的长度等于 $2^n$，mask 的值等于 $2^n - 1$ 。 
@@ -1577,7 +1578,7 @@ typedef struct _object {
 \end{lstlisting}
 上面的数据结构图示如下：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.5]{images/23-int.png}
             \caption{ }
@@ -1736,7 +1737,7 @@ complex_repr(PyComplexObject *v)
 \end{lstlisting}
 我们现在修改源程序将上面的 () 两个括号变成 []，编译之后执行的结果如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/24-int.png}
             \caption{ }
@@ -1759,7 +1760,7 @@ typedef struct {
 \end{lstlisting}
 上面的数据结构定义图示如下：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.4]{images/12-tuple.png}
             \caption{ }
@@ -1898,7 +1899,7 @@ float_bool(PyFloatObject *v)
 \end{lstlisting}
 下图是我们对于 cpython 对程序的修改！
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.12]{images/14-float.png}
             \caption{ }
@@ -1907,7 +1908,7 @@ float_bool(PyFloatObject *v)
     
 下面是修改之后我们再次对浮点数进行操作的时候的输出，可以看到的是输出了我们在上面的代码当中加入的语句。
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/13-float.png}
             \caption{ }
@@ -1940,7 +1941,7 @@ typedef struct _object {
 \end{lstlisting}
 上面的数据结构用图的方式表示出来如下图所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/22-int.png}
             \caption{ }
@@ -1961,7 +1962,7 @@ typedef struct _object {
 \end{itemize}
 我们下面使用几个例子来深入理解一下上面的规则：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/16-int.png}
             \caption{ }
@@ -1970,7 +1971,7 @@ typedef struct _object {
     
 在上图当中 ob\_size  大于 0 ，说明这个数是一个正数，而 ob\_digit 指向一个 int32 的数据，数的值等于 10，因此上面这个数表示整数 10 。
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/17-int.png}
             \caption{ }
@@ -1979,7 +1980,7 @@ typedef struct _object {
     
 同理 ob\_size 小于 0，而 ob\_digit 等于 10，因此上图当中的数据表示 -10 。
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/18-int.png}
             \caption{ }
@@ -1992,7 +1993,7 @@ $$
 $$
 因为对于每一个数组元素来说我们只使用前 30 位，因此到第二个整型数据的时候正好对应着 $2^{30}$，大家可以对应着上面的结果了解整个计算过程。
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/19-int.png}
             \caption{ }
@@ -2012,7 +2013,7 @@ $$
 static PyLongObject small_ints[NSMALLNEGINTS + NSMALLPOSINTS];
 \end{lstlisting}
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/20-int.png}
             \caption{ }
@@ -2060,7 +2061,7 @@ int main()
 \end{lstlisting}
 上面的程序的输出结果如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/21-int.png}
             \caption{ }
@@ -2200,7 +2201,7 @@ typedef struct _object {
 \end{lstlisting}
 上面的数据结构用图示如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.25]{images/28-bytes.png}
 						\caption{ }
@@ -2218,7 +2219,7 @@ typedef struct _object {
 可能你会有疑问上面的结构体当中并没有后面的那么多字节啊，数组只有一个字节的数据啊，这是因为在 cpython 的实现当中除了申请 PyBytesObject 大的小内存空间之外，还会在这个基础之上申请连续的额外的内存空间用于保存数据，在后续的源码分析当中可以看到这一点。
 下面我们举几个例子来说明一下上面的布局：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.25]{images/29-bytes.png}
 						\caption{ }
@@ -2279,7 +2280,7 @@ _PyBytes_FromSize(Py_ssize_t size, int use_calloc)
 >>>
 \end{lstlisting}
 上面的 44 = 32 + 11 + 1 。
-其中 32 是 PyBytesObject 4 个字段所占用的内存空间，ob\_refcnt、ob\_type、ob\_size和 ob\_shash 各占 8 个字节。11 是表示字符串 "hello world" 占用 11 个字节，最后一个字节是 '\\0' 。
+其中 32 是 PyBytesObject 4 个字段所占用的内存空间，ob\_refcnt、ob\_type、ob\_size和 ob\_shash 各占 8 个字节。11 是表示字符串 "hello world" 占用 11 个字节，最后一个字节是 ' \textbackslash 0 ' 。
 \subsection{查看字节长度}
 这个函数主要是返回 PyBytesObject 对象的字节长度，也就是直接返回 ob\_size 的值。
 \begin{lstlisting}[style=cpp,caption=, language=C++]
@@ -2354,7 +2355,7 @@ bytes_concat(PyObject *a, PyObject *b)
 \end{lstlisting}
 我们修改一个这个函数，在其中加入一条打印语句，然后重新编译 python 执行结果如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/30-bytes.png}
 						\caption{ }
@@ -2389,7 +2390,7 @@ b'abc'
 \item "ab" 拷贝了一次。 
 \item "c" 拷贝了一次。 
 \end{itemize}
-但是实际上我们的需求是只需要对 [b"a", b"b", b"c"] 当中的数据各拷贝一次，如果我们要实现这一点可以使用 b"".join([b"a", b"b", b"c"])，直接将 [b"a", b"b", b"c"] 作为参数传递，然后各自只拷贝一次，具体的实现代码如下所示，在这个例子当中 sep 就是空串 b""，iterable 就是 [b"a", b"b", b"c"] 。
+但是实际上我们的需求是只需要对 \verb|[b"a", b"b", b"c"]| 当中的数据各拷贝一次，如果我们要实现这一点可以使用 b"".join([b"a", b"b", b"c"])，直接将 [b"a", b"b", b"c"] 作为参数传递，然后各自只拷贝一次，具体的实现代码如下所示，在这个例子当中 sep 就是空串 b""，iterable 就是 [b"a", b"b", b"c"] 。
 \begin{lstlisting}[style=cpp,caption=, language=C++]
 
 Py_LOCAL_INLINE(PyObject *)

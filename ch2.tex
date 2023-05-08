@@ -8,7 +8,7 @@ Python 是一种解释型语言，它不像编译型语言那样将源代码直�
 \subsection{生成 pyc 文件}
 正常的 python 文件需要通过编译器变成字节码，然后将字节码交给 python 虚拟机，然后 python 虚拟机会执行字节码。整体流程如下所示：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.25]{images/35-pyc.png}
 						\caption{ }
@@ -31,10 +31,10 @@ __pycache__ demo.py     hello.py
 ➜  pvm ls __pycache__ 
 demo.cpython-310.pyc  hello.cpython-310.pyc
 \end{lstlisting}
-`python -m compileall .` 命令将递归扫描当前目录下面的 py 文件，并且生成对应文件的 pyc 文件。
+\verb|python -m compileall .| 命令将递归扫描当前目录下面的 py 文件，并且生成对应文件的 pyc 文件。
 \subsection{pyc 文件布局}
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.35]{images/38-pyc.png}
 						\caption{ }
@@ -43,7 +43,7 @@ demo.cpython-310.pyc  hello.cpython-310.pyc
     
 第一部分魔数由两部分组成：
 
-    \begin{figure}[h]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.3]{images/37-pyc.png}
 						\caption{ }
@@ -121,9 +121,9 @@ File Size 32
 \end{lstlisting}
 有关 pyc 文件的详细操作可以查看 python 标准库 importlib/\_bootstrap\_external.py 文件源代码。
 \subsection{CodeObject}
-在 CPython 中，`CodeObject` 是一个对象，它包含了 Python 代码的字节码、常量、变量、位置参数、关键字参数等信息，以及一些用于运行代码的元数据，如文件名、代码行号等。
-在 CPython 中，当我们执行一个 Python 模块或函数时，解释器会先将其代码编译为 `CodeObject`，然后再执行。在编译过程中，解释器会将 Python 代码转换为字节码，并将其保存在 `CodeObject` 对象中。此后，每当我们调用该模块或函数时，解释器都会使用 `CodeObject` 中的字节码来执行代码。
-`CodeObject` 对象是不可变的，一旦创建就不能被修改。这是因为 Python 代码的字节码是不可变的，而 `CodeObject` 对象包含了这些字节码，所以也是不可变的。
+在 CPython 中，\verb|CodeObject| 是一个对象，它包含了 Python 代码的字节码、常量、变量、位置参数、关键字参数等信息，以及一些用于运行代码的元数据，如文件名、代码行号等。
+在 CPython 中，当我们执行一个 Python 模块或函数时，解释器会先将其代码编译为 \verb|CodeObject|，然后再执行。在编译过程中，解释器会将 Python 代码转换为字节码，并将其保存在 \verb|CodeObject| 对象中。此后，每当我们调用该模块或函数时，解释器都会使用 \verb|CodeObject| 中的字节码来执行代码。
+\verb|CodeObject| 对象是不可变的，一旦创建就不能被修改。这是因为 Python 代码的字节码是不可变的，而 \verb|CodeObject| 对象包含了这些字节码，所以也是不可变的。
 在本小节当中主要介绍 code object 当中主要的内容，以及简单介绍他们的作用，在后续的文章当中会仔细分析 code object 对应的源代码以及对应的字段的详细作用。
 现在举一个例子来分析一下 pycdemo.py 的 pyc 文件，pycdemo.py 的源程序如下所示：
 \begin{lstlisting}[style=py,caption=, language=Python]
@@ -369,7 +369,7 @@ code
 */
 #define CO_NOFREE       0x0040
 /* The CO_COROUTINE flag is set for coroutine functions (defined with
-   ``async def`` keywords) */
+   async def keywords) */
 #define CO_COROUTINE            0x0080
 #define CO_ITERABLE_COROUTINE   0x0100
 \end{lstlisting}
@@ -481,7 +481,7 @@ code
    stacksize 2
    flags 0043 0x43
    code b'6401007d00006402007d01007c00007c01001753'
-   #					  字节码指令		 \section{字节码指令参数 # 参数对应的值}
+   #					  字节码指令		 字节码指令参数  参数对应的值
  24           0 LOAD_CONST               1 (1)
               3 STORE_FAST               0 (a)
  25           6 LOAD_CONST               2 (2)
@@ -491,9 +491,9 @@ code
              18 BINARY_ADD
              19 RETURN_VALUE
    consts
-      None \section{下标等于 0 的常量}
-      1 	 \section{下标等于 1 的常量}
-      2		 \section{下标等于 2 的常量}
+      None # 下标等于 0 的常量
+      1 	# 下标等于 1 的常量
+      2	   # 下标等于 2 的常量
    names ()
    varnames ('a', 'b')
    freevars ()
@@ -503,7 +503,7 @@ code
 \begin{itemize}
 \item LOAD\_CONST，将常量表当中的下标等于 i 个对象加载到栈当中，对应上面的代码  LOAD\_CONST 的参数 i = 1。因此加载测常量等于 1 。因此现在栈空间如下所示： 
 
-    \begin{figure}[ht]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/39-codeobject.png}
 						\caption{ }
@@ -512,7 +512,7 @@ code
     
 \item STORE\_FAST，将栈顶元素弹出并且保存到 co\_varnames 对应的下标当中，根据上面的字节码参数等于 0 ，因此将 1 保存到 co\_varnames[0] 对应的对象当中。 
 
-    \begin{figure}[ht]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/40-codeobject.png}
 						\caption{ }
@@ -521,7 +521,7 @@ code
     
 \item LOAD\_CONST，将下标等于 2 的常量加载进入栈中。 
 
-    \begin{figure}[ht]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/41-codeobject.png}
 						\caption{ }
@@ -530,7 +530,7 @@ code
     
 \item STORE\_FAST，将栈顶元素弹出，并且保存到 varnames 下标为 1 的对象。 
 
-    \begin{figure}[ht]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/42-codeobject.png}
 						\caption{ }
@@ -539,7 +539,7 @@ code
     
 \item LOAD\_FAST，是取出 co\_varnames 对应下标的数据，并且将其压入栈中。我们直接连续执行两个 LOAD\_FAST 之后栈空间的布局如下： 
 
-    \begin{figure}[ht]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/43-codeobject.png}
 						\caption{ }
@@ -548,7 +548,7 @@ code
     
 \item BINARY\_ADD，这个字节码指令是将栈空间的两个栈顶元素弹出，然后将两个数据进行相加操作，然后将相加得到的结果重新压入栈中。 
 
-    \begin{figure}[ht]
+    \begin{figure}[H]
         \centering
             \includegraphics[scale=.2]{images/44-codeobject.png}
 						\caption{ }
@@ -560,3 +560,5 @@ code
 从上面的整个执行过程来看整个栈空间使用的最大的空间长度为 2 ，因此 stacksize = 2 。
 \subsection{总结}
 在本小节当中主要分析了一些 code obejct 当中比较重要的字段，code object 是 cpython 虚拟机当中一个比较重要的数据结构，深入的去理解这里面的字段对于我们理解 python 虚拟机非常有帮助。
+
+% \colorbox{yellow}{这是一个蓝色的文字块。}
