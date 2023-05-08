@@ -290,6 +290,42 @@ print(MyClass.my_static_method(1, 2))
 
 在这个示例中，我们定义了一个 MyClass 类，并使用 @staticmethod 装饰器将 my_static_method 方法定义为静态方法。然后我们可以通过 MyClass.my_static_method(1, 2) 直接调用该方法，而不需要创建 MyClass 的实例。需要注意的是，静态方法没有对类或实例进行任何修改，因此它们通常用于一些独立的、无状态的函数，或者在类中定义的一些帮助函数。
 
+那么 staticmethod 是如何在语法层面实现的呢？这又离不开描述器了，在上面的代码当中我们使用 `staticmethod` 装饰函数 `my_static_method` 然后在类 `MyClass` 当中会有一个类 staticmethod 的对象，且名字为 my_static_method 。我们需要注意到的是上面的过程用一行代码表示为 `my_static_method = staticmethod(my_static_method)`，传入的 my_static_method 就是 my_static_method 函数，那么这就很简单了，当使用 my_static_method 的属性时候，我们可以在描述器的函数 `__get__` 当中直接返回传入的函数即可。
+
+我们自己实现的 StaticMethod 如下所示：
+
+```python
+class StaticMethod:
+    "Emulate PyStaticMethod_Type() in Objects/funcobject.c"
+
+    def __init__(self, f):
+        self.f = f
+        f = functools.update_wrapper(self, f)
+
+    def __get__(self, obj, objtype=None):
+        return self.f
+
+    def __call__(self, *args, **kwds):
+        return self.f(*args, **kwds)
+```
+
+我们使用上面自己实现的类：
+
+```python
+class MyClass(object):
+
+    @StaticMethod
+    def demo():
+        return "demo"
+
+
+if __name__ == '__main__':
+    a = MyClass()
+    print(a.demo())
+```
+
+上面的程序会输出字符串 `"demo"` 。
+
 ### classmethod
 
 classmethod 是另一个装饰器，它可以将一个函数定义为类方法。类方法与静态方法类似，但它们接收的第一个参数是类对象而不是实例对象。类方法通常用于实现与类有关的操作，如工厂方法或构造函数。
