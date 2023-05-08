@@ -246,7 +246,7 @@ code
 在本小节当中主要给大家介绍了 python 文件被编译之后的结果文件 .pyc 文件结构，在 pyc 文件当中一个最重要的结构就是 code object 对象，在本小节当中主要是简单介绍了 code object 各个字段的作用。在后续的文章当中将会举详细的例子进行说明，正确理解这些这些字段的含义，对于我们理解 python 虚拟机大有裨益。
 
 
-\section{深入理解 python 虚拟机：字节码灵魂——Code obejct}
+\section{字节码灵魂——Code obejct}
 在本小节当中主要给大家深入介绍在 cpython 当中非常重要的一个数据结构 code object!在本小节当中将会举一些例子以便更加深入理解这些字段。
 \subsection{Code Object 数据结构}
 \begin{lstlisting}[style=cpp,caption=, language=C++]
@@ -561,7 +561,7 @@ code
 \subsection{总结}
 在本小节当中主要分析了一些 code obejct 当中比较重要的字段，code object 是 cpython 虚拟机当中一个比较重要的数据结构，深入的去理解这里面的字段对于我们理解 python 虚拟机非常有帮助。
 
-\section{深入理解 python 虚拟机：令人拍案叫绝的字节码设计}
+\section{令人拍案叫绝的字节码设计}
 在本小节当中主要给大家介绍 cpython 虚拟机对于字节码的设计以及在调试过程当中一个比较重要的字段 co\_lnotab 的设计原理！
 \subsection{python 字节码设计}
 一条 python 字节码主要有两部分组成，一部分是操作码，一部分是这个操作码的参数，在 cpython 当中只有部分字节码有参数，如果对应的字节码没有参数，那么 oparg 的值就等于 0 ，在 cpython 当中 opcode < 90 的指令是没有参数的。
@@ -870,7 +870,7 @@ def findlinestarts(code):
 \subsection{总结}
 在本小节当中主要给大家介绍了 cpython 当中对于字节码和源代码和字节码之间的映射关系的具体设计，这对于我们深入去理解 cpython 虚拟机的设计非常有帮助！
 
-\section{深入理解 python 虚拟机：字节码教程(1)——原来装饰器是这样实现的}
+\section{字节码教程(1)——原来装饰器是这样实现的}
 在本小节当中主要给大家介绍在 cpython 当中一些比较常见的字节码，从根本上理解 python 程序的执行。在本文当中主要介绍一些 python 基本操作的字节码，并且将从字节码的角度分析函数装饰器的原理！
 \subsection{Python 常见字节码}
 \subsubsection{LOAD\_CONST}
@@ -1056,9 +1056,9 @@ def findlinestarts(code):
 import time
 def eval_time(func):
     
-    def cal_time(*args, **kwargs):
+    def cal_time(*args, kwargs):
         start = time.time()
-        r = func(*args, **kwargs)
+        r = func(*args, kwargs)
         end = time.time()
         return r, end _mmstart 
     return cal_time
@@ -1207,17 +1207,17 @@ function demo return string : Demo
 在本小节当中主要给大家介绍了 python 当中一些基础的字节码对应的含义以及示例代码，本小节最重要的便是从字节码的角度解释了装饰器的本质原理，这对我们以后使用装饰器非常有帮助，可以灵活的控制和了解装饰器其中发生的故事。
 
 
-\section{深入理解 python 虚拟机：字节码教程(2)——控制流是如何实现的？}
+\section{字节码教程(2)——控制流是如何实现的？}
 在本小节当中主要给大家分析 python 当中与控制流有关的字节码，通过对这部分字节码的了解，我们可以更加深入了解 python 字节码的执行过程和控制流实现原理。
 \subsection{控制流实现}
 控制流这部分代码主要涉及下面几条字节码指令，下面的所有字节码指令都会有一个参数：
 \begin{itemize}
-\item **JUMP\_FORWARD**，指令完整条指令会将当前执行字节码指令的位置加上这个参数，然后跳到对应的结果继续执行。 
-\item **POP\_JUMP\_IF\_TRUE**，如果栈顶元素等于 true，将字节码的执行位置改成参数的值。将栈顶元素弹出。 
-\item **POP\_JUMP\_IF\_FALSE**，这条指令和 **POP\_JUMP\_IF\_TRUE** 一样，唯一差别就是判断栈顶元素是否等于 true。  
-\item **JUMP\_IF\_TRUE\_OR\_POP**，如果栈顶元素等于等于 true 则将字节码执行位置设置成参数对应的值，并且不需要将栈顶元素弹出。但是如果栈顶元素是 false 的话那么就需要将栈顶元素弹出。 
-\item **JUMP\_IF\_FALSE\_OR\_POP**，和**JUMP\_IF\_TRUE\_OR\_POP**一样只不过需要栈顶元素等于 false 。 
-\item **JUMP\_ABSOLUTE**，直接将字节码的执行位置设置成参数的值。 
+\item JUMP\_FORWARD，指令完整条指令会将当前执行字节码指令的位置加上这个参数，然后跳到对应的结果继续执行。 
+\item POP\_JUMP\_IF\_TRUE，如果栈顶元素等于 true，将字节码的执行位置改成参数的值。将栈顶元素弹出。 
+\item POP\_JUMP\_IF\_FALSE，这条指令和 POP\_JUMP\_IF\_TRUE 一样，唯一差别就是判断栈顶元素是否等于 true。  
+\item JUMP\_IF\_TRUE\_OR\_POP，如果栈顶元素等于等于 true 则将字节码执行位置设置成参数对应的值，并且不需要将栈顶元素弹出。但是如果栈顶元素是 false 的话那么就需要将栈顶元素弹出。 
+\item JUMP\_IF\_FALSE\_OR\_POP，和JUMP\_IF\_TRUE\_OR\_POP一样只不过需要栈顶元素等于 false 。 
+\item JUMP\_ABSOLUTE，直接将字节码的执行位置设置成参数的值。 
 \end{itemize}
 总的来说，这些跳转指令可以让 Python 的解释器在执行字节码时根据特定条件来改变执行流程，实现循环、条件语句等基本语言结构。
 现在我们使用一个例子来深入理解上面的各种指令的执行过程。
@@ -1359,4 +1359,213 @@ CALL\_FUNCTION 这个字节码有一个参数，表示调用函数的参数的�
 至此差不多上面的函数差不多执行完了，后面几条字节码很简单，就不再进行叙述了。
 \subsection{总结}
 在 Python 中，控制流指令可以让解释器根据特定条件改变执行流程，实现循环、条件语句等基本语言结构。Python 中与控制流有关的字节码指令包括 JUMP\_FORWARD、POP\_JUMP\_IF\_TRUE、POP\_JUMP\_IF\_FALSE、JUMP\_IF\_TRUE\_OR\_POP、JUMP\_IF\_FALSE\_OR\_POP 和 JUMP\_ABSOLUTE 等。这些指令都有一个参数，主要是用来计算跳转的目标位置等。通过对这些指令的了解，我们可以更深入地理解 Python 字节码的执行过程和控制流实现原理。
+
+
+\section{字节码教程(3)——深入剖析循环实现原理}
+在本小节当中主要给大家介绍 cpython 当中跟循环相关的字节码，这部分字节码相比起其他字节码来说相对复杂一点，通过分析这部分字节码我们对程序的执行过程将会有更加深刻的理解。
+\subsection{循环}
+\subsubsection{普通 for 循环实现原理}
+我们使用各种例子来理解和循环相关的字节码：
+\begin{lstlisting}[style=py,caption=, language=Python]
+
+def test_loop():
+    for i in range(10):
+        print(i)
+\end{lstlisting}
+上面的代码对应的字节码如下所示：
+\begin{lstlisting}[style=cpp,caption=, language=C++]
+
+  8           0 LOAD_GLOBAL              0 (range)
+              2 LOAD_CONST               1 (10)
+              4 CALL_FUNCTION            1
+              6 GET_ITER
+        >>    8 FOR_ITER                12 (to 22)
+             10 STORE_FAST               0 (i)
+  9          12 LOAD_GLOBAL              1 (print)
+             14 LOAD_FAST                0 (i)
+             16 CALL_FUNCTION            1
+             18 POP_TOP
+             20 JUMP_ABSOLUTE            8
+        >>   22 LOAD_CONST               0 (None)
+             24 RETURN_VALUE
+\end{lstlisting}
+首先是 range 他对应一个 builtin 的类型，在执行上面的字节码的过程当中，首先先将 range 将在进入栈空间当中，然后将常量 10 加载进入栈空间当中，最后会调用指令 CALL\_FUNCTION，这个时候会将栈顶的两个元素弹出，调用 range 类型的创建函数，这个函数会返回一个 range 的实例对象。
+这个时候栈的结果如下所示：
+
+    \begin{figure}[H]
+        \centering
+            \includegraphics[scale=.25]{images/66-bytecode.png}
+						\caption{ }
+        \label{fig:my_label}
+    \end{figure}
+    
+接下来的一条字节码为 GET\_ITER，这条字节码的含义为，弹出栈顶的对象，并且将弹出的对象变成一个迭代器，并且将得到的迭代器对象再压入栈空间当中。
+
+    \begin{figure}[H]
+        \centering
+            \includegraphics[scale=.25]{images/67-bytecode.png}
+						\caption{ }
+        \label{fig:my_label}
+    \end{figure}
+    
+接下来的一条指令是 FOR\_ITER，这条指令的含义为：已知栈顶对象是一个迭代器，调用这个迭代器的 \verb|__next__| 函数 ：
+\begin{itemize}
+\item 如果迭代器已经迭代完成了，则将栈顶的迭代器弹出，并且将 bytecode 的 counter 加上对应的参数值，在上面的函数字节码当中这个参数值等于 12 ，也就是说下一条指令为字节码序列的 22 这个位置。 
+\item 如果没有迭代完成则将函数的返回值压入栈顶，并且不需要弹出迭代器，比如当我们第一次调用 \verb|__next__| 函数的时候，range 的返回值为0，那么此时栈空间的内容如下所示： 
+
+    \begin{figure}[H]
+        \centering
+            \includegraphics[scale=.25]{images/68-bytecode.png}
+						\caption{ }
+        \label{fig:my_label}
+    \end{figure}
+    
+\end{itemize}
+接下来执行的字节码为 STORE\_FAST，这条字节码的含义就是弹出栈顶的元素，并且将这个元素保存到 co\_varnames[var\_num] 当中，var\_num 就是这条字节码的参数，在上面的函数当中就是 0，对应的变量为 i ，因此这条字节码的含义就是弹出栈顶的元素并且保存到变量 i 当中。
+LOAD\_GLOBAL，将内嵌函数 print 加载进入栈中，LOAD\_FAST 将变量 i 加载进入栈空间当中，此时栈空间的内容如下所示：
+
+    \begin{figure}[H]
+        \centering
+            \includegraphics[scale=.25]{images/69-bytecode.png}
+						\caption{ }
+        \label{fig:my_label}
+    \end{figure}
+    
+CALL\_FUNCTION 会调用 print 函数打印数字 0，并且将函数的返回值压入栈空间当中，print 函数的返回值为 None，此时栈空间的内容如下所示：
+
+    \begin{figure}[H]
+        \centering
+            \includegraphics[scale=.25]{images/70-bytecode.png}
+						\caption{ }
+        \label{fig:my_label}
+    \end{figure}
+    
+POP\_TOP 将栈顶的元素弹出，JUMP\_ABSOLUTE 字节码有一个参数，在上面的函数当中这个参数为 8 ，当执行这条字节码的时候直接将 bytecode 的 counter 直接设置成这个参数值，因此执行完这条字节码之后下一条被执行的字节码又是 FOR\_ITER，这便实现了循环的效果。
+综合分析上面的分析过程，实现循环的效果主要是有两个字节码实现的，一个是 FOR\_ITER，当迭代器迭代完成之后，会直接跳出循环，实现这个的原理是在字节码的 counter 上加上一个值，另外一个就是 JUMP\_ABSOLUTE，他可以直接跳到某一处的字节码位置进行执行。
+\subsubsection{continue 关键字实现原理}
+\begin{lstlisting}[style=py,caption=, language=Python]
+
+def test_continue():
+    for i in range(10):
+        data = random.randint(0, 10)
+        if data < 5:
+            continue
+        print(f"{data = }")
+\end{lstlisting}
+其实通过对上面的字节码的分析之后，我们可以大致分析出 continue 的实现原理，首先我们知道 continue 的语意直接进行下一次循环，这个语意其实和循环体执行完之后的语意是一样的，在上一份代码的分析当中实现这个语意的字节码是 JUMP\_ABSOLUTE，直接跳到 FOR\_ITER 指令的位置继续开始执行。我们现在来看看上面的函数对应的字节码是什么：
+\begin{lstlisting}[style=cpp,caption=, language=C++]
+
+ 13           0 LOAD_GLOBAL              0 (range)
+              2 LOAD_CONST               1 (10)
+              4 CALL_FUNCTION            1
+              6 GET_ITER
+        >>    8 FOR_ITER                40 (to 50)
+             10 STORE_FAST               0 (i)
+ 14          12 LOAD_GLOBAL              1 (random)
+             14 LOAD_METHOD              2 (randint)
+             16 LOAD_CONST               2 (0)
+             18 LOAD_CONST               1 (10)
+             20 CALL_METHOD              2
+             22 STORE_FAST               1 (data)
+ 15          24 LOAD_FAST                1 (data)
+             26 LOAD_CONST               3 (5)
+             28 COMPARE_OP               0 (<)
+             30 POP_JUMP_IF_FALSE       34
+ 16          32 JUMP_ABSOLUTE            8
+ 17     >>   34 LOAD_GLOBAL              3 (print)
+             36 LOAD_CONST               4 ('data = ')
+             38 LOAD_FAST                1 (data)
+             40 FORMAT_VALUE             2 (repr)
+             42 BUILD_STRING             2
+             44 CALL_FUNCTION            1
+             46 POP_TOP
+             48 JUMP_ABSOLUTE            8
+        >>   50 LOAD_CONST               0 (None)
+             52 RETURN_VALUE
+\end{lstlisting}
+\begin{itemize}
+\item LOAD\_GLOBAL 0 (range): 加载全局变量 range，将其压入栈顶。 
+\item LOAD\_CONST 1 (10): 加载常量值 10，将其压入栈顶。 
+\item CALL\_FUNCTION 1: 调用栈顶的函数，此处为 range 函数，并传入一个参数，参数个数为 1。 
+\item GET\_ITER: 获取迭代器对象。 
+\item FOR\_ITER 40 (to 50): 迭代循环的开始，当迭代完成之后将字节码的 counter 加上 40 ，也就是跳转到 50 的位置执行。 
+\item STORE\_FAST 0 (i): 将迭代器的值存储到局部变量 i 中。 
+\item LOAD\_GLOBAL 1 (random): 加载全局变量 random，将其压入栈顶。 
+\item LOAD\_METHOD 2 (randint): 加载对象 random 的属性 randint，将其压入栈顶。 
+\item LOAD\_CONST 2 (0): 加载常量值 0，将其压入栈顶。 
+\item LOAD\_CONST 1 (10): 加载常量值 10，将其压入栈顶。 
+\item CALL\_METHOD 2: 调用栈顶的方法，此处为 random.randint 方法，并传入两个参数，参数个数为 2。 
+\item STORE\_FAST 1 (data): 将方法返回值存储到局部变量 data 中。 
+\item LOAD\_FAST 1 (data): 加载局部变量 data，将其压入栈顶。 
+\item LOAD\_CONST 3 (5): 加载常量值 5，将其压入栈顶。 
+\item COMPARE\_OP 0 (<): 执行比较操作 <，将结果压入栈顶。 
+\item POP\_JUMP\_IF\_FALSE 34: 如果栈顶的比较结果为假，则跳转到字节码偏移为 34 的位置。 
+\item JUMP\_ABSOLUTE 8: 无条件跳转到字节码偏移为 8 的位置，即循环的下一次迭代。 
+\item LOAD\_GLOBAL 3 (print): 加载全局变量 print，将其压入栈顶。 
+\item LOAD\_CONST 4 ('data = '): 加载常量字符串 'data = '，将其压入栈顶。 
+\item LOAD\_FAST 1 (data): 加载局部变量 data，将其压入栈顶。 
+\item FORMAT\_VALUE 2 (repr): 格式化栈顶的值，并指定格式化方式为 repr。 
+\item BUILD\_STRING 2: 构建字符串对象，包含两个格式化后的值。 
+\item CALL\_FUNCTION 1: 调用栈顶的函数，此处为 print 函数，并传入一个参数，参数个数为 1。 
+\item POP\_TOP: 弹出栈顶的值，也就是函数 print 的返回值，print 函数返回值为 None 。 
+\item JUMP\_ABSOLUTE 8: 无条件跳转到字节码偏移为 8 的位置，即循环的下一次迭代。 
+\item LOAD\_CONST 0 (None): 加载常量值 None，将其压入栈顶。 
+\item RETURN\_VALUE: 返回栈顶的值，即 None。 
+\end{itemize}
+这段字节码实现了一个简单的循环，使用 range 函数生成一个迭代器，然后对迭代器进行遍历，每次遍历都会调用 random.randint 方法生成一个随机数并存储到局部变量 data 中，然后根据 data 的值进行条件判断，如果小于 5 则打印 "data = " 和 data 的值，否则继续下一次循环，直到迭代器结束。最后返回 None。
+\subsubsection{break 关键字实现原理}
+\begin{lstlisting}[style=py,caption=, language=Python]
+
+def test_break():
+    for i in range(10):
+        data = random.randint(0, 10)
+        if data < 5:
+            break
+    return "BREAK"
+\end{lstlisting}
+上面的函数对应的字节码如下所示：
+\begin{lstlisting}[style=cpp,caption=, language=C++]
+
+ 21           0 LOAD_GLOBAL              0 (range)
+              2 LOAD_CONST               1 (10)
+              4 CALL_FUNCTION            1
+              6 GET_ITER
+        >>    8 FOR_ITER                28 (to 38)
+             10 STORE_FAST               0 (i)
+ 22          12 LOAD_GLOBAL              1 (random)
+             14 LOAD_METHOD              2 (randint)
+             16 LOAD_CONST               2 (0)
+             18 LOAD_CONST               1 (10)
+             20 CALL_METHOD              2
+             22 STORE_FAST               1 (data)
+ 23          24 LOAD_FAST                1 (data)
+             26 LOAD_CONST               3 (5)
+             28 COMPARE_OP               0 (<)
+             30 POP_JUMP_IF_FALSE        8
+ 24          32 POP_TOP
+             34 JUMP_ABSOLUTE           38
+             36 JUMP_ABSOLUTE            8
+ 26     >>   38 LOAD_CONST               4 ('BREAK')
+             40 RETURN_VALUE
+\end{lstlisting}
+这段字节码与之前的字节码相似，但有一些细微的不同。
+\begin{itemize}
+\item LOAD\_GLOBAL 0 (range): 加载全局变量 range，将其压入栈顶。 
+\item LOAD\_CONST 1 (10): 加载常量值 10，将其压入栈顶。 
+\item CALL\_FUNCTION 1: 调用函数，函数参数个数为 1。 
+\item GET\_ITER: 从栈顶获取可迭代对象，并返回迭代器对象。 
+\item FOR\_ITER 28 (to 38): 遍历迭代器，如果迭代器为空，则跳转到字节码偏移为 38 的位置，即跳出循环，否则继续执行下一条字节码。 
+\item STORE\_FAST 0 (i): 将迭代器的当前值存储到局部变量 i 中。 
+\end{itemize}
+接下来的字节码与之前的字节码相似，都是调用 random.randint 方法生成随机数，并将随机数存储到局部变量 data 中。然后，对局部变量 data 进行条件判断，如果小于 5 则跳出循环，否则继续下一次循环。不同的是，这里使用了 POP\_TOP 操作来弹出栈顶的值，即格式化后的字符串，无需使用。
+\begin{itemize}
+\item POP\_JUMP\_IF\_FALSE 8: 如果栈顶的值（即 data）不满足条件（小于 5），则跳转到字节码偏移为 8 的位置，即循环的下一次迭代。 
+\item POP\_TOP: 弹出栈顶的值，也就是将迭代器弹出。 
+\item JUMP\_ABSOLUTE 38: 无条件跳转到字节码偏移为 38 的位置，即跳出循环。 
+\item JUMP\_ABSOLUTE 8: 无条件跳转到字节码偏移为 8 的位置，即循环的下一次迭代。 
+\end{itemize}
+最后，字节码加载了一个常量字符串 'BREAK'，并通过 RETURN\_VALUE 操作将其作为返回值返回。这段字节码实现了类似于之前的循环，但在满足条件时使用了 POP\_TOP 和跳转指令来优化循环的执行。
+从上面的分析过程可以看出来 break 的实现也是通过 JUMP\_ABSOLUTE 来做到的，直接跳转到循环外部的下一行代码。
+\subsection{总结}
+在本本小节当中主要给大家分析了在python当中也循环有关的字节码，实现循环操作的主要是几个核心的字节码 FOR\_ITER ，JUMP\_ABSOLUTE，GET\_ITER 等等。只要深入了解了这几个字节码的功能理解循环的过程就很简单了。
 
