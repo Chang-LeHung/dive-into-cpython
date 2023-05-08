@@ -151,7 +151,11 @@ if __name__ == '__main__':
 212.0
 ```
 
-可以看到上面的程序正确的输出了结果，符合我们对与 property 的理解和使用。从上面的分析我们可以看到 property 本质就是一个 python 的类，因此我可以完全自己实现一个和内置的 property 类相同功能的类，具体的代码如下所示：
+可以看到上面的程序正确的输出了结果，符合我们对与 property 的理解和使用。从上面的分析我们可以看到 property 本质就是一个 python 的类，因此我可以完全自己实现一个和内置的 property 类相同功能的类。
+
+### 在 python 语言层面实现 property 机制
+
+具体的实现代码如下所示：
 
 ```python
 class Property:
@@ -263,5 +267,85 @@ if __name__ == '__main__':
 
 现在我们来好好分析一下我们在上面使用到的自己实现的 `Property` 类是如何被调用的，在前面的内容当中我们已经讨论过了，只有类属性才可能是描述器，我们在使用 `@Property` 的时候是获取到对应的函数，更准确的说是获得对象的 get 函数，然后使用 `@Property` 的类当中的原来的函数就变成了 `Property` 对象了，后面就可以使用对象的 `setter` 方法了。
 
-然后在使用 `rect.width` 或者 `rect.height` 方法的时候就活触发描述器的机制， rect 对象就会被传入到描述器的 `__get__`方法，然后在这个方法当中将传入的对象再传给之前得到的 `fget` 函数，就完美的实现了这个机制。
+然后在使用 `rect.width` 或者 `rect.height` 方法的时候就活触发描述器的机制， rect 对象就会被传入到描述器的 `__get__`方法，然后在这个方法当中将传入的对象再传给之前得到的 `fget` 函数，就完美的实现了我们想要的效果。
 
+## classmethod 和 staticmethod
+
+在 Python 中，staticmethod 和 classmethod 是两个常用的装饰器，它们分别用于定义静态方法和类方法。
+
+### staticmethod
+
+staticmethod 是一个装饰器，它可以将一个函数定义为静态方法。静态方法与类实例无关，可以在不创建类实例的情况下直接调用，但它们仍然可以通过类名访问。
+
+下面是一个简单的示例：
+
+```python
+class MyClass:
+    @staticmethod
+    def my_static_method(x, y):
+        return x + y
+
+print(MyClass.my_static_method(1, 2))
+```
+
+在这个示例中，我们定义了一个 MyClass 类，并使用 @staticmethod 装饰器将 my_static_method 方法定义为静态方法。然后我们可以通过 MyClass.my_static_method(1, 2) 直接调用该方法，而不需要创建 MyClass 的实例。需要注意的是，静态方法没有对类或实例进行任何修改，因此它们通常用于一些独立的、无状态的函数，或者在类中定义的一些帮助函数。
+
+### classmethod
+
+classmethod 是另一个装饰器，它可以将一个函数定义为类方法。类方法与静态方法类似，但它们接收的第一个参数是类对象而不是实例对象。类方法通常用于实现与类有关的操作，如工厂方法或构造函数。
+
+下面是一个使用 classmethod 的示例：
+
+```python
+class MyClass:
+    num_instances = 0
+    
+    def __init__(self):
+        MyClass.num_instances += 1
+    
+    @classmethod
+    def get_num_instances(cls):
+        return cls.num_instances
+
+obj1 = MyClass()
+obj2 = MyClass()
+print(MyClass.get_num_instances())
+```
+
+在这个示例中，我们定义了一个 MyClass 类，它包含一个类变量 num_instances 和一个构造函数。然后，我们使用 @classmethod 装饰器将 get_num_instances 方法定义为类方法，并将 cls 参数用于访问类变量 num_instances。
+
+在创建 MyClass 的两个实例后，我们调用 MyClass.get_num_instances() 来获取当前创建的实例数。因为我们使用了类方法，所以可以直接通过类名调用该方法。
+
+需要注意的是，类方法可以在类和实例之间共享，因为它们都可以访问类变量。另外，类方法可以被子类继承和重写，因为它们接收的第一个参数是类对象，而不是固定的类名。
+
+在小节中，我们介绍了 Python 中的两种常用装饰器，即 staticmethod 和 classmethod。staticmethod 用于定义与类实例无关的静态方法，而 classmethod 用于定义与类相关的操作，如工厂方法或构造函数。两种装饰器都可以通过类名进行访问，但 classmethod 还可以被子类继承和重写，因为它们接收的第一个参数是类对象。
+
+需要注意的是，staticmethod 和 classmethod 都可以被类或实例调用，但它们不同的是，classmethod 的第一个参数是类对象，而 staticmethod 没有这样的参数。因此，classmethod 可以访问类变量，而 staticmethod 不能访问类变量。
+
+下面是一个更具体的比较：
+
+```python
+class MyClass:
+    class_var = 'class_var'
+
+    @staticmethod
+    def static_method():
+        print('This is a static method')
+        
+    @classmethod
+    def class_method(cls):
+        print('This is a class method')
+        print(f'The class variable is: {cls.class_var}')
+
+obj = MyClass()
+
+# 静态方法可以被类或实例调用
+MyClass.static_method()
+obj.static_method()
+
+# 类方法可以被类或实例调用，并且可以访问类变量
+MyClass.class_method()
+obj.class_method()
+```
+
+在这个示例中，我们定义了一个 MyClass 类，并分别定义了静态方法和类方法。在调用静态方法时，我们可以使用类名或实例名进行调用，因为静态方法与类或实例无关。而在调用类方法时，我们必须使用类名或实例名进行调用，并且类方法可以访问类变量。总的来说，staticmethod 和 classmethod 是 Python 中两个非常有用的装饰器，它们可以帮助我们更好地组织和管理代码。需要根据实际情况来选择使用哪种装饰器，以便实现最佳的代码设计和可维护性。
