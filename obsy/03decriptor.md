@@ -19,6 +19,8 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 可以看到的是真正调用的字节码是 `LOAD_ATTR`，因此只需要我们深入 `LOAD_ATTR` 指令我们就能够了解这其中所有发生的内容，了解魔法背后的神秘。
 
+## 描述器源码分析
+
 cpython 虚拟机当中执行这个字节码的内容如下：
 
 ```c
@@ -66,7 +68,7 @@ PyObject_GetAttr(PyObject *v, PyObject *name)
 }
 ```
 
-在上面的代码当中我们提到了 object 这个基类，因为我们需要找到他的属性查找函数，因此我们看一下这个基类在 cpython 内部的定义：
+在上面的代码当中我们提到了 object 这个基类，因为我们需要找到他的属性查找函数，因此我们看一下这个基类在 cpython 内部的定义，在 cpython 内部 object 基类定义为 `PyBaseObject_Type`：
 
 ```c
 PyTypeObject PyBaseObject_Type = {
@@ -112,13 +114,15 @@ PyTypeObject PyBaseObject_Type = {
     PyObject_Del,                               /* tp_free */
 };
 
-
+// 从上面的 object 定义可以看到真正的查找函数为 PyObject_GenericGetAttr 其函数内容如下所示：
 PyObject *
 PyObject_GenericGetAttr(PyObject *obj, PyObject *name)
 {
     return _PyObject_GenericGetAttrWithDict(obj, name, NULL, 0);
 }
 ```
+
+`_PyObject_GenericGetAttrWithDict` 函数定义如下所示：
 
 ```c
 /* Generic GetAttr functions - put these in your tp_[gs]etattro slot. */
@@ -132,7 +136,7 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name,
 
        When suppress=1, this function suppress AttributeError.
     */
-
+    // 首先获取对象的类型 针对于上面的源代码来说就是找到对象 a 的类型
     PyTypeObject *tp = Py_TYPE(obj);
     PyObject *descr = NULL;
     PyObject *res = NULL;
@@ -152,14 +156,21 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name,
         if (PyType_Ready(tp) < 0)
             goto done;
     }
-
+    // 这个是从所有的基类当中找到一个名字为 name 的对象 如果没有就返回 NULL
+    // 这里的过程还是比较复杂 需要从类的 mro 序列当中进行查找
     descr = _PyType_Lookup(tp, name);
 
     f = NULL;
+    // 如果找到的类对象不为空 也就是在类本身或者基类当中找到一个名为 name 的对象
     if (descr != NULL) {
         Py_INCREF(descr);
+        // 得到类对象的 __get__ 函数
         f = descr->ob_type->tp_descr_get;
-        if (f != NULL && PyDescr_IsData(descr)) {
+        // 如果对象有 __get__ 函数则进行进一步判断
+        if (f != NULL && PyDescr_IsData(descr)) { // PyDescr_IsData(descr) 这个宏是查看对象是否有 __set__ 函数
+            // 如果是类对象又有 __get__ 函数 又有 __set__ 函数 则直接调用对象的 __get__ 函数 并且将结果返回
+            // 这里需要注意一下优先级 这个优先级是最高的 如果一个类对象定义了 __set__ 和 __get__ 函数，那么
+            // 就会直接调用类对象的 __get__ 函数并且将这个函数的返回值返回
             res = f(descr, obj, (PyObject *)obj->ob_type);
             if (res == NULL && suppress &&
                     PyErr_ExceptionMatches(PyExc_AttributeError)) {
@@ -168,9 +179,11 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name,
             goto done;
         }
     }
-
+    // 如果没有名为 name 的类对象 或者虽然有名为 name 的对象 但是只要没有同时定义 __get__ 和 __set__ 函数就需要
+    // 继续往下执行 从对象本省的 dict 当中寻找
     if (dict == NULL) {
         /* Inline _PyObject_GetDictPtr */
+        // 这部分代码就是从对象 obj 当中找到对象的 __dict__ 字段
         dictoffset = tp->tp_dictoffset;
         if (dictoffset != 0) {
             if (dictoffset < 0) {
@@ -191,6 +204,7 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name,
             dict = *dictptr;
         }
     }
+    // 如果对象 obj 存在 __dict__ 字段 那么就返回 __dict__ 字段当中名字等于 name 的对象
     if (dict != NULL) {
         Py_INCREF(dict);
         res = PyDict_GetItem(dict, name);
@@ -201,7 +215,8 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name,
         }
         Py_DECREF(dict);
     }
-
+    // 如果类对象定义了 __get__ 函数没有定义 __set__ 函数而且在 dict 当中没有找到名为 name 的对象的话
+    // 那么久调用类对象的 __get__ 函数
     if (f != NULL) {
         res = f(descr, obj, (PyObject *)Py_TYPE(obj));
         if (res == NULL && suppress &&
@@ -210,7 +225,7 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name,
         }
         goto done;
     }
-
+    // 如果类对象没有定义 __get__ 函数那么就直接将这个类对象返回
     if (descr != NULL) {
         res = descr;
         descr = NULL;
@@ -227,5 +242,40 @@ _PyObject_GenericGetAttrWithDict(PyObject *obj, PyObject *name,
     Py_DECREF(name);
     return res;
 }
+```
+
+根据对上面的程序进行分析，我们可以到得到从对象当中获取属性的顺序和优先级如下所示（以 `a.attr` 为例子）：
+
+- 如果属性不是类属性，那么很简单就是直接从对象本身的 `__dict__` 当中获取这个对象。
+- 如果属性是类属性，如果同时定义了 `__get__` 和 `__set__` 函数，那么就会调用这个类对象的 `__get__` 函数，将这个函数的返回值作为 `a.attr` 的返回值。
+- 如果属性是类属性，如果只定义了 `__get__` 函数，那么就会从对象 `a` 本身的 `__dict__` 当中获取 `attr` ，如果 `attr` 存在与 `a.__dict__` 当中，那么久返回这个结果，如果不存在的话那么就会调用 `__get__` 函数，将这个函数的返回值作为 `a.attr` 的结果，如果连 `__get__` 都没有定义，那么就会直接返回这个类对象。
+
+上面的函数过程用 python 语言来描述的话如下所示：
+
+```python
+def find_name_in_mro(cls, name, default):
+    "Emulate _PyType_Lookup() in Objects/typeobject.c"
+    for base in cls.__mro__:
+        if name in vars(base):
+            return vars(base)[name]
+    return default
+
+def object_getattribute(obj, name):
+    "Emulate PyObject_GenericGetAttr() in Objects/object.c"
+    null = object()
+    objtype = type(obj)
+    cls_var = find_name_in_mro(objtype, name, null)
+    descr_get = getattr(type(cls_var), '__get__', null)
+    if descr_get is not null:
+        if (hasattr(type(cls_var), '__set__')
+            or hasattr(type(cls_var), '__delete__')):
+            return descr_get(cls_var, obj, objtype)     # data descriptor
+    if hasattr(obj, '__dict__') and name in vars(obj):
+        return vars(obj)[name]                          # instance variable
+    if descr_get is not null:
+        return descr_get(cls_var, obj, objtype)         # non-data descriptor
+    if cls_var is not null:
+        return cls_var                                  # class variable
+    raise AttributeError(name)
 ```
 
