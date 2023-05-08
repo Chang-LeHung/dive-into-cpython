@@ -2372,7 +2372,7 @@ In concat function: abc <> edf
 b'abcedf'
 >>> 
 \end{lstlisting}
-在上面的拼接函数当中会拷贝原来的两个字节对象，因此需要谨慎使用，一旦发生非常多的拷贝的话是非常耗费内存的。因此需要警惕使用循环内的内存拼接。比如对于 [b"a", b"b", b"c"] 来说，如果使用循环拼接的话，那么会将 b"a" 拷贝两次。
+在上面的拼接函数当中会拷贝原来的两个字节对象，因此需要谨慎使用，一旦发生非常多的拷贝的话是非常耗费内存的。因此需要警惕使用循环内的内存拼接。比如对于 \verb|[b"a", b"b", b"c"]| 来说，如果使用循环拼接的话，那么会将 \verb|b"a"| 拷贝两次。
 \begin{lstlisting}[style=cpp,caption=, language=C++]
 
 >>> res = b""
@@ -2383,14 +2383,14 @@ b'abcedf'
 b'abc'
 >>>
 \end{lstlisting}
-因为 b"a", b"b" 在拼接的时候会将他们分别拷贝一次，在进行 b"ab"，b"c" 拼接的时候又会将 ab 和 c 拷贝一次，那么具体的拷贝情况如下所示：
+因为 \verb|b"a"|, \verb|b"b"| 在拼接的时候会将他们分别拷贝一次，在进行 \verb|b"ab"|，\verb|b"c"| 拼接的时候又会将 ab 和 c 拷贝一次，那么具体的拷贝情况如下所示：
 \begin{itemize}
-\item "a" 拷贝了一次。 
-\item "b" 拷贝了一次。 
-\item "ab" 拷贝了一次。 
-\item "c" 拷贝了一次。 
+\item \verb|"a"| 拷贝了一次。 
+\item \verb|"b"| 拷贝了一次。 
+\item \verb|"ab"| 拷贝了一次。 
+\item \verb|"c"| 拷贝了一次。 
 \end{itemize}
-但是实际上我们的需求是只需要对 \verb|[b"a", b"b", b"c"]| 当中的数据各拷贝一次，如果我们要实现这一点可以使用 b"".join([b"a", b"b", b"c"])，直接将 [b"a", b"b", b"c"] 作为参数传递，然后各自只拷贝一次，具体的实现代码如下所示，在这个例子当中 sep 就是空串 b""，iterable 就是 [b"a", b"b", b"c"] 。
+但是实际上我们的需求是只需要对 \verb|[b"a", b"b", b"c"]| 当中的数据各拷贝一次，如果我们要实现这一点可以使用 \verb|b"".join([b"a", b"b", b"c"])|，直接将 \verb|[b"a", b"b", b"c"]| 作为参数传递，然后各自只拷贝一次，具体的实现代码如下所示，在这个例子当中 sep 就是空串 \verb|b""|，iterable 就是 \verb|[b"a", b"b", b"c"]| 。
 \begin{lstlisting}[style=cpp,caption=, language=C++]
 
 Py_LOCAL_INLINE(PyObject *)
