@@ -1,4 +1,4 @@
-# 深入理解 python 虚拟机：描述器的王炸应用
+# 深入理解 python 虚拟机：描述器的王炸应用-property、staticmethod 和 classmehtod
 
 在本篇文章当中主要给大家介绍描述器在 python 语言当中有哪些应用，主要介绍如何使用 python 语言实现 python 内置的 proterty 、staticmethod 和 class method 。
 
