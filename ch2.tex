@@ -783,20 +783,152 @@ def findlinestarts(code):
         yield (addr, lineno)
 \end{lstlisting}
 \subsection{python 字节码表}
-\begin{table}[H]
+\begin{table}
     \centering
     \caption{操作及操作码}
       \begin{tabular}{|l|l|}
       \hline
       操作    & 操作码 \\
       \hline
-      POP\_TOP & 1 \\\hline
-      ROT\_TWO & 2 \\\hline
-      ROT\_THREE & 3 \\\hline
-      DUP\_TOP & 4 \\\hline
-      DUP\_TOP\_TWO & 5 \\\hline
+        POP\_TOP & 1 \\ \hline
+        ROT\_TWO & 2 \\ \hline
+        ROT\_THREE & 3 \\ \hline
+        DUP\_TOP & 4 \\ \hline
+        DUP\_TOP\_TWO & 5 \\ \hline
+        ROT\_FOUR & 6 \\ \hline
+        NOP & 9 \\ \hline
+        UNARY\_POSITIVE & 10 \\ \hline
+        UNARY\_NEGATIVE & 11 \\ \hline
+        UNARY\_NOT & 12 \\ \hline
+        UNARY\_INVERT & 15 \\ \hline
+        BINARY\_MATRIX\_MULTIPLY & 16 \\ \hline
+        INPLACE\_MATRIX\_MULTIPLY & 17 \\ \hline
+        BINARY\_POWER & 19 \\ \hline
+        BINARY\_MULTIPLY & 20 \\ \hline
+        BINARY\_MODULO & 22 \\ \hline
+        BINARY\_ADD & 23 \\ \hline
+        BINARY\_SUBTRACT & 24 \\ \hline
+        BINARY\_SUBSCR & 25 \\ \hline
+        BINARY\_FLOOR\_DIVIDE & 26 \\ \hline
+        BINARY\_TRUE\_DIVIDE & 27 \\ \hline
+        INPLACE\_FLOOR\_DIVIDE & 28 \\ \hline
+        INPLACE\_TRUE\_DIVIDE & 29 \\ \hline
+        GET\_LEN & 30 \\ \hline
+        MATCH\_MAPPING & 31 \\ \hline
+        MATCH\_SEQUENCE & 32 \\ \hline
+        MATCH\_KEYS & 33 \\ \hline
+        COPY\_DICT\_WITHOUT\_KEYS & 34 \\ \hline
+        WITH\_EXCEPT\_START & 49 \\ \hline
+        GET\_AITER & 50 \\ \hline
+        GET\_ANEXT & 51 \\ \hline
+        BEFORE\_ASYNC\_WITH & 52 \\ \hline
       \end{tabular}
 \end{table}
 
+\begin{table}
+    \ContinuedFloat
+    \centering
+    \caption{续表）}\label{tab:longtable-continued}
+      \begin{tabular}{|l|l|}
+      \hline
+      操作    & 操作码 \\
+      \hline
+        END\_ASYNC\_FOR & 54 \\ \hline
+        INPLACE\_ADD & 55 \\ \hline
+        INPLACE\_SUBTRACT & 56 \\ \hline
+        INPLACE\_MULTIPLY & 57 \\ \hline
+        INPLACE\_MODULO & 59 \\ \hline
+        STORE\_SUBSCR & 60 \\ \hline
+        DELETE\_SUBSCR & 61 \\ \hline
+        BINARY\_LSHIFT & 62 \\ \hline
+        BINARY\_RSHIFT & 63 \\ \hline
+        BINARY\_AND & 64 \\ \hline
+        BINARY\_XOR & 65 \\ \hline
+        BINARY\_OR & 66 \\ \hline
+        INPLACE\_POWER & 67 \\ \hline
+        GET\_ITER & 68 \\ \hline
+        GET\_YIELD\_FROM\_ITER & 69 \\ \hline
+        PRINT\_EXPR & 70 \\ \hline
+        LOAD\_BUILD\_CLASS & 71 \\ \hline
+        YIELD\_FROM & 72 \\ \hline
+        GET\_AWAITABLE & 73 \\ \hline
+        LOAD\_ASSERTION\_ERROR & 74 \\ \hline
+        INPLACE\_LSHIFT & 75 \\ \hline
+        INPLACE\_RSHIFT & 76 \\ \hline
+        INPLACE\_AND & 77 \\ \hline
+        INPLACE\_XOR & 78 \\ \hline
+        INPLACE\_OR & 79 \\ \hline
+        LIST\_TO\_TUPLE & 82 \\ \hline
+        RETURN\_VALUE & 83 \\ \hline
+        IMPORT\_STAR & 84 \\ \hline
+        SETUP\_ANNOTATIONS & 85 \\ \hline
+        YIELD\_VALUE & 86 \\ \hline
+        POP\_BLOCK & 87 \\ \hline
+        POP\_EXCEPT & 89 \\ \hline
+        STORE\_NAME & 90 \\ \hline
+        DELETE\_NAME & 91 \\ \hline
+        UNPACK\_SEQUENCE & 92 \\ \hline
+        FOR\_ITER & 93 \\ \hline
+        UNPACK\_EX & 94 \\ \hline
+        STORE\_ATTR & 95 \\ \hline
+        DELETE\_ATTR & 96 \\ \hline
+        STORE\_GLOBAL & 97 \\ \hline
+        DELETE\_GLOBAL & 98 \\ \hline
+        ROT\_N & 99 \\ \hline
+        LOAD\_CONST & 100 \\ \hline
+        LOAD\_NAME & 101 \\ \hline
+        BUILD\_TUPLE & 102 \\ \hline
+        BUILD\_LIST & 103 \\ \hline
+        BUILD\_SET & 104 \\ \hline
+        BUILD\_MAP & 105 \\ \hline
+        LOAD\_ATTR & 106 \\ \hline
+        COMPARE\_OP & 107 \\ \hline
+        IMPORT\_NAME & 108 \\ \hline
+        IMPORT\_FROM & 109 \\ \hline
+        JUMP\_FORWARD & 110 \\ \hline
+        JUMP\_IF\_FALSE\_OR\_POP & 111 \\ \hline
+        JUMP\_IF\_TRUE\_OR\_POP & 112 \\ \hline
+        JUMP\_ABSOLUTE & 113 \\ \hline
+        POP\_JUMP\_IF\_FALSE & 114 \\ \hline
+        POP\_JUMP\_IF\_TRUE & 115 \\ \hline
+        LOAD\_GLOBAL & 116 \\ \hline
+        IS\_OP & 117 \\ \hline
+        CONTAINS\_OP & 118 \\ \hline
+        RERAISE & 119 \\ \hline
+        JUMP\_IF\_NOT\_EXC\_MATCH & 121 \\ \hline
+        SETUP\_FINALLY & 122 \\ \hline
+        LOAD\_FAST & 124 \\ \hline
+        STORE\_FAST & 125 \\ \hline
+        DELETE\_FAST & 126 \\ \hline
+        GEN\_START & 129 \\ \hline
+        RAISE\_VARARGS & 130 \\ \hline
+        CALL\_FUNCTION & 131 \\ \hline
+        MAKE\_FUNCTION & 132 \\ \hline
+        BUILD\_SLICE & 133 \\ \hline
+        LOAD\_CLOSURE & 135 \\ \hline
+        LOAD\_DEREF & 136 \\ \hline
+        STORE\_DEREF & 137 \\ \hline
+        DELETE\_DEREF & 138 \\ \hline
+        CALL\_FUNCTION\_KW & 141 \\ \hline
+        CALL\_FUNCTION\_EX & 142 \\ \hline
+        SETUP\_WITH & 143 \\ \hline
+        EXTENDED\_ARG & 144 \\ \hline
+        LIST\_APPEND & 145 \\ \hline
+        SET\_ADD & 146 \\ \hline
+        MAP\_ADD & 147 \\ \hline
+        LOAD\_CLASSDEREF & 148 \\ \hline
+        MATCH\_CLASS & 152 \\ \hline
+        SETUP\_ASYNC\_WITH & 154 \\ \hline
+        FORMAT\_VALUE & 155 \\ \hline
+        BUILD\_CONST\_KEY\_MAP & 156 \\ \hline
+        BUILD\_STRING & 157 \\ \hline
+        LOAD\_METHOD & 160 \\ \hline
+        CALL\_METHOD & 161 \\ \hline
+        LIST\_EXTEND & 162 \\ \hline
+        SET\_UPDATE & 163 \\ \hline
+        DICT\_MERGE & 164 \\ \hline
+        DICT\_UPDATE & 165 \\ \hline
+        \end{tabular}
+\end{table}
 \subsection{总结}
 在本小节当中主要给大家介绍了 cpython 当中对于字节码和源代码和字节码之间的映射关系的具体设计，这对于我们深入去理解 cpython 虚拟机的设计非常有帮助！
