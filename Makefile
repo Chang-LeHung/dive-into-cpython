@@ -1,4 +1,4 @@
 
 
 all:
-	xelatex main.tex
+	xelatex main.tex synctex=1 -interaction=nonstopmode -file-line-error
