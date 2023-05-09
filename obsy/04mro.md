@@ -128,10 +128,54 @@ In class C
 
 在上面的代码当中继承体系也是棱形继承，在类 A 当中有一个方法 `method_a` 其中类 B 继承了 A 但是没有重写这个方法，类 B 继承自 A 但是重写了这个方法，类 D 同时继承了类 B 和类 C，当对象 obj 调用方法 `method_a` 的时候发现在类 B 当中没有这个方法，这个时候如果直接在类 A 查找这个方法在很多情况下并不是我们想要的，因为 D 继承了 C 如果 C 重写了这个方法的话我们应该需要调用类 C 的 `method_a` 方法，而不是调用类 A 的 `method_a` 。
 
-从上面的案例我们可以知道，一个子类不能够跨过他的直接父类（D 的直接父类就是 B 和 C）调用更上层的方法，而是先需要在所有的直接父类查看是否有这个方法，在 cpython 的 mro 实现当中是能够保证这一点的，这种性质叫做“单调性（monotonicity）”。
+从上面的案例我们可以知道，一个子类不能够跨过他的直接父类（D 的直接父类就是 B 和 C）调用更上层的方法，而是先需要在所有的直接父类查看是否有这个方法，在 cpython 的 mro 实现当中是能够保证这一点的，这种性质叫做“单调性”（monotonicity）。
 
 ### C3 算法
 
 C3 算法是 Python 中使用的 MRO 算法，它可以用来确定一个类的方法解析顺序。该算法的具体步骤如下：
 
 - 现将所有的
+
+```python
+class MroError(Exception):
+    """Raised if a consistent mro cannot be determined for a class."""
+
+
+def linearize_hierarchy(
+    info: TypeInfo, obj_type: Callable[[], Instance] | None = None
+) -> list[TypeInfo]:
+    # TODO describe
+    if info.mro:
+        return info.mro
+    bases = info.direct_base_classes()
+    if not bases and info.fullname != "builtins.object" and obj_type is not None:
+        # Probably an error, add a dummy `object` base class,
+        # otherwise MRO calculation may spuriously fail.
+        bases = [obj_type().type]
+    lin_bases = []
+    for base in bases:
+        assert base is not None, f"Cannot linearize bases for {info.fullname} {bases}"
+        lin_bases.append(linearize_hierarchy(base, obj_type))
+    lin_bases.append(bases)
+    return [info] + merge(lin_bases)
+
+
+def merge(seqs: list[list[TypeInfo]]) -> list[TypeInfo]:
+    seqs = [s.copy() for s in seqs]
+    result: list[TypeInfo] = []
+    while True:
+        seqs = [s for s in seqs if s]
+        if not seqs:
+            return result
+        for seq in seqs:
+            head = seq[0]
+            if not [s for s in seqs if head in s[1:]]:
+                break
+        else:
+            raise MroError()
+        result.append(head)
+        for s in seqs:
+            if s[0] is head:
+                del s[0]
+```
+
