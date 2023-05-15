@@ -473,7 +473,19 @@ tail_contains(PyObject *tuple, int whence, PyObject *o)
 }
 ```
 
+## 再谈 MRO
 
+在本篇文章当中主要给大家介绍了多继承存在的问题，以及介绍了在 python 当中的解决方案 C3 算法。之所以被称作 C3 算法，主要是因为这个算法有以下三点特性：
+
+- a consistent extended precedence graph
+- preservation of local precedence order
+- fitting a monotonicity criterion
+
+![78-mro](../images/79-mro.png)
+
+我们使用上面的图来分析一下上面的三个特性是在说明什么，在上面的继承关系当中类 A 当中有一个方法 method，类 B 和类 C 继承自类 A 并且类 C 重写了 method 方法，类 D 继承了 B 和 C 。
+
+- monotonicity 单调性，这个特性主要是说明子类不能够跨过父类直接调用父类的父类的方法，比如在上面的类当中，当类 D 调用 method 方法的时候，调用的是类 C 的 method 方法而不是类 A 的 method 方法，虽然类 B 没有 method 而且类 A 有 method 方法，但是子类 D 不能够跨过父类 B 直接调用 类 A 的方法，必须检查类 C 是否有这个方法，如果有就调用 C 的，如果 B C 都没有才调用 A 的。
 
 如果你对这篇论文感兴趣的话，论文下载地址为 https://opendylan.org/_static/c3-linearization.pdf 。
 
