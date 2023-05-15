@@ -132,9 +132,95 @@ In class C
 
 ### C3 算法
 
-C3 算法是 Python 中使用的 MRO 算法，它可以用来确定一个类的方法解析顺序。该算法的具体步骤如下：
+C3 算法是 Python 中使用的 MRO 算法，它可以用来确定一个类的方法解析顺序。首先我们需要知道的就是，当一个类所继承的多个类当中有相同的基类或者定义了名字相同的方法，会是一个问题。mro 就是我给他一个对象，他会给我们返回一个类的序列，当我们打算从对象当中获取一个属性或者方法的时候就会顺着这个序列从左往右进行查找，若查找成功则返回，否则继续查找后续的类。
 
-- 现将所有的
+现在我们来详细介绍一下 C3 算法的实现细节，这个算法的主要流程是一个递归求解 mro 的过程，假设 A 继承自 [B, C, D, E, F]，那么 C3 算法求 mro 的实现流程如下所示：
+
+- mro(A) = [A] + merge(mro(B), mro(C), mro(D), mro(E), mro(F), [B, C, D, E, F] )
+- merge 函数的原理是遍历传入的序列，找到一个这样的序列，序列的第一个类型只能在其他序列的头部，或者没有在其他序列出现，并且将这个序列加入到 merge 函数的返回序列当中，并且将这个类从所有序列当中删除，重复这个步骤知道所有的序列都为空。
+
+```bash
+ class O
+ class A extends O
+ class B extends O
+ class C extends O
+ class D extends O
+ class E extends O
+ class K1 extends A, B, C
+ class K2 extends D, B, E
+```
+
+对 K2 求 pro 序列的结果如下所示：
+
+```bash
+L(K2) := [K2] + merge(L(D), L(B), L(E), [D, B, E])
+      = [K2] + merge([D, O], [B, O], [E, O], [D, B, E])    // 选择D
+      = [K2, D] + merge([O], [B, O], [E, O], [B, E])       // 不选O，选择B 因为 O 在 [B, O] 和 [E, O] 当中出现了而且不是第一个
+      = [K2, D, B] + merge([O], [O], [E, O], [E])          // 不选O，选择E 因为 O 在 [E, O] 当中出现了而且不是第一个
+      = [K2, D, B, E] + merge([O], [O], [O])               // 选择O
+      = [K2, D, B, E, O]
+```
+
+我们自己实现的 mro 算法如下所示：
+
+```python
+from typing import Iterable
+
+
+class A:
+    pass
+
+
+class B(A):
+
+    pass
+
+
+class C(A):
+    pass
+
+
+class D(B, C):
+    pass
+
+
+def mro(_type: type):
+    bases = _type.__bases__
+    lin_bases = []
+    for base in bases:
+        lin_bases.append(mro(base))
+    lin_bases.append(list(bases))
+    return [_type] + merge(lin_bases)
+
+
+def merge(types: Iterable[Iterable[type]]):
+    res = []
+    seqs = types
+    while True:
+        seqs = [s for s in seqs if s]
+        if not seqs:
+            # if seqs is empty
+            return res
+        for seq in seqs:
+            head = seq[0]
+            if not [s for s in seqs if head in s[1:]]:
+                break
+        else:
+            # 如果遍历完所有的类还是找不到一个合法的类 则说明 mro 算法失败 这个继承关系不满足 C3 算法的要求
+            raise Exception('can not find mro sequence')
+        res.append(head)
+        for s in seqs:
+            if s[0] == head:
+                del s[0]
+
+
+if __name__ == '__main__':
+    print(D.mro())
+    print(mro(D))
+    assert D.mro() == mro(D)
+```
+
+
 
 ```python
 class MroError(Exception):
@@ -145,7 +231,7 @@ def linearize_hierarchy(
     info: TypeInfo, obj_type: Callable[[], Instance] | None = None
 ) -> list[TypeInfo]:
     # TODO describe
-    if info.mro:
+    if info.mro:	
         return info.mro
     bases = info.direct_base_classes()
     if not bases and info.fullname != "builtins.object" and obj_type is not None:
@@ -178,4 +264,6 @@ def merge(seqs: list[list[TypeInfo]]) -> list[TypeInfo]:
             if s[0] is head:
                 del s[0]
 ```
+
+如果你对这篇论文感兴趣的话，论文下载地址为 https://opendylan.org/_static/c3-linearization.pdf 。
 
