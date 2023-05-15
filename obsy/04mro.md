@@ -231,7 +231,7 @@ if __name__ == '__main__':
 
 merge 函数的主要操作为，按照从左到右的顺序遍历各个父类的 mro 序列，如果第一个类没有在其他父类的 mro 序列当中出现，或者是其他父类 mro 序列当中的第一个类的话就可以将这个类加入到返回的 mro 列表当中，否则选择下一个类的 mro 序列进行相同的操作，直到找到一个符合上面条件的类，如果遍历完所有的父类还是没有找到的话那么就报错。
 
-### Mypy 实现
+### Mypy 针对 mro 实现
 
 mypy 是一个 python 类型的静态分析工具，它也实现了 C3 算法用于计算 mro ，下面是它的代码实现。
 
@@ -279,6 +279,201 @@ def merge(seqs: list[list[TypeInfo]]) -> list[TypeInfo]:
 ```
 
 上面的函数 `linearize_hierarchy` 就是用于求解 mro 的函数，上面的实现整体过程和我们自己实现的 C3 算法是一样的，首先递归调用 `linearize_hierarchy` 计算得到父类的 mro 序列，最后将得到的 mro 进行 merge 操作。
+
+### cpython 虚拟机 mro 实现
+
+在本小节当中主要给大家介绍一下在 cpython 当中 C 语言层面是如何实现 mro 的。需要知道的 cpython 对于 mro 的实现也是使用我们在上面提到的算法，算法原理也是一样的。
+
+```c
+static PyObject *
+mro_implementation(PyTypeObject *type)
+{
+    PyObject *result;
+    PyObject *bases;
+    PyObject **to_merge;
+    Py_ssize_t i, n;
+
+    if (type->tp_dict == NULL) {
+        if (PyType_Ready(type) < 0)
+            return NULL;
+    }
+    // 获取类型 type 的所有父类
+    bases = type->tp_bases;
+    // bases 的数据类型为 tuple
+    assert(PyTuple_Check(bases));
+    n = PyTuple_GET_SIZE(bases);
+    // 检查基类的 mro 序列是否计算出来了
+    for (i = 0; i < n; i++) {
+        PyTypeObject *base = (PyTypeObject *)PyTuple_GET_ITEM(bases, i);
+        if (base->tp_mro == NULL) {
+            PyErr_Format(PyExc_TypeError,
+                         "Cannot extend an incomplete type '%.100s'",
+                         base->tp_name);
+            return NULL;
+        }
+        assert(PyTuple_Check(base->tp_mro));
+    }
+    // 如果是单继承 也就是只继承了一个类 那么就可以走 fast path
+    if (n == 1) {
+        /* Fast path: if there is a single base, constructing the MRO
+         * is trivial.
+         */
+        PyTypeObject *base = (PyTypeObject *)PyTuple_GET_ITEM(bases, 0);
+        Py_ssize_t k = PyTuple_GET_SIZE(base->tp_mro);
+        result = PyTuple_New(k + 1);
+        if (result == NULL) {
+            return NULL;
+        }
+        // 直接将父类的 mro 序列加在 当前类的后面 即 mro = [当前类, 父类的 mro 序列]
+        Py_INCREF(type);
+        PyTuple_SET_ITEM(result, 0, (PyObject *) type);
+        for (i = 0; i < k; i++) {
+            PyObject *cls = PyTuple_GET_ITEM(base->tp_mro, i);
+            Py_INCREF(cls);
+            PyTuple_SET_ITEM(result, i + 1, cls);
+        }
+        return result;
+    }
+
+    /* This is just a basic sanity check. */
+    if (check_duplicates(bases) < 0) {
+        return NULL;
+    }
+
+    /* Find a superclass linearization that honors the constraints
+       of the explicit tuples of bases and the constraints implied by
+       each base class.
+
+       to_merge is an array of tuples, where each tuple is a superclass
+       linearization implied by a base class.  The last element of
+       to_merge is the declared tuple of bases.
+    */
+  
+    // 如果是多继承就要按照 C3 算法进行实现了
+    to_merge = PyMem_New(PyObject *, n + 1);
+    if (to_merge == NULL) {
+        PyErr_NoMemory();
+        return NULL;
+    }
+    // 得到所有父类的 mro 序列，并将其保存到 to_merge 数组当中
+    for (i = 0; i < n; i++) {
+        PyTypeObject *base = (PyTypeObject *)PyTuple_GET_ITEM(bases, i);
+        to_merge[i] = base->tp_mro;
+    }
+    // 和前面我们自己实现的算法一样 也要将所有基类放在数组的最后
+    to_merge[n] = bases;
+
+    result = PyList_New(1);
+    if (result == NULL) {
+        PyMem_Del(to_merge);
+        return NULL;
+    }
+
+    Py_INCREF(type);
+    PyList_SET_ITEM(result, 0, (PyObject *)type);
+    // 合并数组
+    if (pmerge(result, to_merge, n + 1) < 0) {
+        Py_CLEAR(result);
+    }
+
+    PyMem_Del(to_merge);
+   // 将得到的结果返回
+    return result;
+}
+```
+
+在上面函数当中我们可以分析出来整个代码的流程和我们在前面提到的 C3 算法一样，
+
+```c
+static int
+pmerge(PyObject *acc, PyObject **to_merge, Py_ssize_t to_merge_size)
+{
+    int res = 0;
+    Py_ssize_t i, j, empty_cnt;
+    int *remain;
+    // remain[i] 表示 to_merge[i] 当中下一个可用的类 也就是说 0 - i-1 的类已经被处理合并了
+    /* remain stores an index into each sublist of to_merge.
+       remain[i] is the index of the next base in to_merge[i]
+       that is not included in acc.
+    */
+    remain = PyMem_New(int, to_merge_size);
+    if (remain == NULL) {
+        PyErr_NoMemory();
+        return -1;
+    }
+    // 初始化的时候都是从第一个类开始的 所以下标初始化成 0
+    for (i = 0; i < to_merge_size; i++)
+        remain[i] = 0;
+
+  again:
+    empty_cnt = 0;
+    for (i = 0; i < to_merge_size; i++) {
+        PyObject *candidate;
+
+        PyObject *cur_tuple = to_merge[i];
+
+        if (remain[i] >= PyTuple_GET_SIZE(cur_tuple)) {
+            empty_cnt++;
+            continue;
+        }
+
+        /* Choose next candidate for MRO.
+
+           The input sequences alone can determine the choice.
+           If not, choose the class which appears in the MRO
+           of the earliest direct superclass of the new class.
+        */
+        // 得到候选的类
+        candidate = PyTuple_GET_ITEM(cur_tuple, remain[i]);
+        // 查看各个基类的 mro 序列的尾部当中是否包含 condidate 尾部就是除去剩下的 mro 序列当中的第一个 剩下的类就是尾部当中含有的类 tail_contains 就是检查尾部当中是否包含 condidate
+        for (j = 0; j < to_merge_size; j++) {
+            PyObject *j_lst = to_merge[j];
+            if (tail_contains(j_lst, remain[j], candidate))
+                // 如果尾部当中包含 condidate 则说明当前的 candidate 不符合要求需要查看下一个 mro 序列的第一个类 看看是否符合要求 如果还不符合就需要找下一个 再进行重复操作
+                goto skip; /* continue outer loop */
+        }
+        // 找到了则将 condidate 加入的返回的结果当中
+        res = PyList_Append(acc, candidate);
+        if (res < 0)
+            goto out;
+        // 更新 remain 数组，在前面我们提到了当加入一个 candidate 到返回值当中的时候需要将这个类从所有的基类的 mro 序列当中删除 （事实上只可能删除各个 mro 序列当中的第一个类）因此需要更新 remain 数组
+        for (j = 0; j < to_merge_size; j++) {
+            PyObject *j_lst = to_merge[j];
+            if (remain[j] < PyTuple_GET_SIZE(j_lst) &&
+                PyTuple_GET_ITEM(j_lst, remain[j]) == candidate) {
+                remain[j]++;
+            }
+        }
+        goto again;
+      skip: ;
+    }
+
+    if (empty_cnt != to_merge_size) {
+        set_mro_error(to_merge, to_merge_size, remain);
+        res = -1;
+    }
+
+  out:
+    PyMem_Del(remain);
+
+    return res;
+}
+
+static int
+tail_contains(PyObject *tuple, int whence, PyObject *o)
+{
+    Py_ssize_t j, size;
+    size = PyTuple_GET_SIZE(tuple);
+
+    for (j = whence+1; j < size; j++) {
+        if (PyTuple_GET_ITEM(tuple, j) == o)
+            return 1;
+    }
+    return 0;
+}
+```
+
+
 
 如果你对这篇论文感兴趣的话，论文下载地址为 https://opendylan.org/_static/c3-linearization.pdf 。
 
