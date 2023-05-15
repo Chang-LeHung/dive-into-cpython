@@ -3,10 +3,6 @@
 import marshal
 
 
-class A:
-    name = "A"
-
-
 if __name__ == '__main__':
     with open("pyobjects.bin", "wb") as fp:
         marshal.dump(1, fp)
