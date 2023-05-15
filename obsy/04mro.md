@@ -486,6 +486,24 @@ tail_contains(PyObject *tuple, int whence, PyObject *o)
 我们使用上面的图来分析一下上面的三个特性是在说明什么，在上面的继承关系当中类 A 当中有一个方法 method，类 B 和类 C 继承自类 A 并且类 C 重写了 method 方法，类 D 继承了 B 和 C 。
 
 - monotonicity 单调性，这个特性主要是说明子类不能够跨过父类直接调用父类的父类的方法，比如在上面的类当中，当类 D 调用 method 方法的时候，调用的是类 C 的 method 方法而不是类 A 的 method 方法，虽然类 B 没有 method 而且类 A 有 method 方法，但是子类 D 不能够跨过父类 B 直接调用 类 A 的方法，必须检查类 C 是否有这个方法，如果有就调用 C 的，如果 B C 都没有才调用 A 的。
+- preservation of local precedence order（保留局部优先顺序），这一点表示 mro 要保证按照继承先后的顺序去查找，也就是说先继承的先查找，比如 D(B, C) 那么如果同一个方法类 B 和类 C 都有，那么就会优先使用 B 当中的方法。
+- a consistent extended precedence graph，这一点是相对来说比较复杂的，这个特性也是一个关于优先级的特性，是之前局部优先的扩展，他的意思是如果两个类 A B 有相同的方法，如果 A 或者 A 的子类出现在 B 或者 B 的子类之前，那么 A 的优先级比 B 高。比如说对于下图当中的继承关系 editable-scrollable-pane 继承自 scrollable-pane 和 editable-pane，editable-pane继承自 editing-mixin 和 pane，scrollable-pane 继承自 scrolling-mixin 和 pane。现在有一个 editable-scrollable-pane 对象调用一个方法，如果这个方法只在 scrolling-mixin 和 editing-mixin 当中出现，那么会调用 scrolling-mixin 当中的方法，不会调用 editing-mixin 当中的方法。这是因为对于 editable-scrollable-pane 对象来说 scrollable-pane 在 editable-pane 前面，而前者是 scrolling-mixin 的子类，后者是 editing-mixin 的子类，这是符合前面我们所谈到的规则。
 
-如果你对这篇论文感兴趣的话，论文下载地址为 https://opendylan.org/_static/c3-linearization.pdf 。
+![78-mro](../images/81-mro.png)
+
+上图来自论文 A Monotonic Superclass Linearization for Dylan ，这篇论文便是 C3 算法的出处。如果你对这篇论文感兴趣的话，论文下载地址为 https://opendylan.org/_static/c3-linearization.pdf 。
+
+## 总结
+
+在本篇文章当中主要给大家详细分析了 python 当中是如何解决多继承存在的问题的，并且详细分析了 C3 算法以及他在 python 和虚拟机层面的实现，最后简要介绍了 C3 算法的三个特性，通过仔细分析这三个特性可以帮助我们深入理解整个继承树的调用链，当然在实际编程当中最好使用更简洁的继承方式，这也可以避免很多问题。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
+![](../qrcode2.jpg)
 
