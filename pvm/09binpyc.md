@@ -214,7 +214,7 @@ def do_parse(self):
 - TYPE_TUPLE，表示一个元组，首先读取四个字节的数据得到一个整数 size ，然后使用 for 循环递归调用 do_parse 函数获取 size 的对象。
 - TYPE_LIST，解析方式和 TYPE_TUPLE 一样，只不过返回列表对象。
 - TYPE_DICT，这个解析的方式不断的调用 do_parse 函数，从 1 开始计数，奇数对象当作 key，偶数对象当中 val，直到遇到 NULL，跳出循环停止解析，这个类型可以直接看下面的解析代码，非常清晰。
-- TYPE_CODE，这个类型表示一个 CodeObject 对象，见下面的解析代码。
+- TYPE_CODE，这个类型表示一个 CodeObject 对象，见下面的解析代码，这部分代码可以结合 CodeObject 的字段分析，前面24 个字节表示整数对象，用于表示 CodeObject 的 6 个字段，接下来的是 8 个 PyObject 对象，因此需要调用 do_parse 函数进行解析，然后再解析一个 4 字节的整数表示第一行代码的行号，最后再读取一个 PyObject 对象。
 
 余下的对象的解析不在一一解释，大家可以直接看下方代码，都是比较清晰易懂的。
 
@@ -385,4 +385,65 @@ class PyObjectLoader(object):
     def __del_(self):
         self.fp.close()
 ```
+
+我们现在使用下面的代码生成一些二进制文件：
+
+```python
+import marshal
+
+
+def add(a, b):
+    print("Hello World")
+    return a+b
+
+
+if __name__ == '__main__':
+    with open("add.bin", "wb") as fp:
+        marshal.dump(add.__code__, fp)
+
+    with open("int.bin", "wb") as fp:
+        marshal.dump(1, fp)
+    with open("float.bin", "wb") as fp:
+        marshal.dump(1.5, fp)
+    with open("tuple.bin", "wb") as fp:
+        marshal.dump((1, 2, 3), fp)
+    with open("set.bin", "wb") as fp:
+        marshal.dump({1, 2, 3}, fp)
+    with open("list.bin", "wb") as fp:
+        marshal.dump([1, 2, 3], fp)
+    with open("dict.bin", "wb") as fp:
+        marshal.dump({1: 2, 3: 4}, fp)
+    with open("code.bin", "wb") as fp:
+        marshal.dump(add.__code__, fp)
+
+    with open("string.bin", "wb") as fp:
+        marshal.dump("Hello World", fp)
+```
+
+当我们使用 marshal 对函数 add 的 code 进行序列化的时候实际上就是序列化一个 CodeObject 对象，这个对象的结果实际上和 pyc 的结构是一样的。
+
+我们使用下面的代码进行反序列化：
+
+```python
+if __name__ == '__main__':
+    assert sys.version_info.major == 3 and sys.version_info.minor == 10, "only python3.10 works"
+    loader = PyObjectLoader("int.bin")
+    print(loader.do_parse())
+    loader = PyObjectLoader("float.bin")
+    print(loader.do_parse())
+    loader = PyObjectLoader("set.bin")
+    print(loader.do_parse())
+    loader = PyObjectLoader("dict.bin")
+    print(loader.do_parse())
+    loader = PyObjectLoader("tuple.bin")
+    print(loader.do_parse())
+    loader = PyObjectLoader("list.bin")
+    print(loader.do_parse())
+    loader = PyObjectLoader("string.bin")
+    print(loader.do_parse())
+    loader = PyObjectLoader("code.bin")
+    pprint(loader.do_parse())
+```
+
+需要注意的是本篇文章代码需要在 python 3.10 上运行，如果需要在 3.8 3.9 运行的话可以将 match 语句改成 if-else 语句。但是由于 python 3.11 当中的 CodeObject 对象的字段发生了一些微小的变化，因此上面的代码是不能在 python 3.11 上执行的。
 
