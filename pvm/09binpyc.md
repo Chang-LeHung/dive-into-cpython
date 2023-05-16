@@ -445,5 +445,53 @@ if __name__ == '__main__':
     pprint(loader.do_parse())
 ```
 
-需要注意的是本篇文章代码需要在 python 3.10 上运行，如果需要在 3.8 3.9 运行的话可以将 match 语句改成 if-else 语句。但是由于 python 3.11 当中的 CodeObject 对象的字段发生了一些微小的变化，因此上面的代码是不能在 python 3.11 上执行的。
+需要注意的是本篇文章代码需要在 python 3.10 上运行，如果需要在 3.8 3.9 运行的话可以将 match 语句改成 if-else 语句。但是由于 python 3.11 当中的 CodeObject 对象的字段发生了一些微小的变化，因此上面的代码是不能在 python 3.11 上执行的。上面的代码执行结果如下所示：
+
+```bash
+(<TYPE.TYPE_INT: 105>, 1)
+(<TYPE.TYPE_FLOAT: 102>, 1.5)
+(<TYPE.TYPE_SET: 60>, {(<TYPE.TYPE_INT: 105>, 1), (<TYPE.TYPE_INT: 105>, 2), (<TYPE.TYPE_INT: 105>, 3)})
+(<TYPE.TYPE_DICT: 123>, {(<TYPE.TYPE_INT: 105>, 1): (<TYPE.TYPE_INT: 105>, 2), (<TYPE.TYPE_INT: 105>, 3): (<TYPE.TYPE_INT: 105>, 4)})
+(<TYPE.TYPE_SMALL_TUPLE: 41>, ((<TYPE.TYPE_INT: 105>, 1), (<TYPE.TYPE_INT: 105>, 2), (<TYPE.TYPE_INT: 105>, 3)))
+(<TYPE.TYPE_LIST: 91>, [(<TYPE.TYPE_INT: 105>, 1), (<TYPE.TYPE_INT: 105>, 2), (<TYPE.TYPE_INT: 105>, 3)])
+(<TYPE.TYPE_SHORT_ASCII: 122>, 'Hello World')
+(<TYPE.TYPE_CODE: 99>,
+ {'argcount': 2,
+  'cellvars': (<TYPE.TYPE_REF: 114>, 'print'),
+  'code': (<TYPE.TYPE_STRING: 115>,
+           b't\x00d\x01\x83\x01\x01\x00|\x00|\x01\x17\x00S\x00'),
+  'consts': (<TYPE.TYPE_SMALL_TUPLE: 41>,
+             (None, (<TYPE.TYPE_SHORT_ASCII: 122>, 'Hello World'))),
+  'filename': (<TYPE.TYPE_SHORT_ASCII: 122>,
+               '/Users/xxxxxxx/Desktop/workdir/dive-into-cpython/code/marshal_demos/add.py'),
+  'firstlineno': 5,
+  'flags': 67,
+  'freevars': (<TYPE.TYPE_SMALL_TUPLE: 41>, ()),
+  'kwonlyargcount': 0,
+  'lnotab': (<TYPE.TYPE_STRING: 115>, b'\x08\x01\x08\x01'),
+  'name': (<TYPE.TYPE_SHORT_ASCII_INTERNED: 90>, 'add'),
+  'names': (<TYPE.TYPE_SMALL_TUPLE: 41>,
+            ((<TYPE.TYPE_SHORT_ASCII_INTERNED: 90>, 'print'),)),
+  'nlocals': 2,
+  'posonlyargcount': 0,
+  'stacksize': 2,
+  'varnames': (<TYPE.TYPE_SMALL_TUPLE: 41>,
+               ((<TYPE.TYPE_SHORT_ASCII_INTERNED: 90>, 'a'),
+                (<TYPE.TYPE_SHORT_ASCII_INTERNED: 90>, 'b')))})
+```
+
+从上面的解析结果来看我们是实现了正确的解析的。
+
+## 总结
+
+在本篇文章当中主要给大家分析了 python 对象序列化之后我们该如何反序列化这些对象，并且使用 python 对二进制文件进行了分析，可以成功的将 python 对象解析出来，但是我们忽略了两个稍微复杂一点的对象，他们的解析稍微有点复杂，但是我们平时的变成当中很少使用到，因此本文的代码解析一般的文件都是可以的。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+![](../qrcode2.jpg)
 
