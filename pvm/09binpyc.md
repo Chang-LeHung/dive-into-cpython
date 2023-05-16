@@ -215,6 +215,14 @@ def do_parse(self):
 - TYPE_LIST，解析方式和 TYPE_TUPLE 一样，只不过返回列表对象。
 - TYPE_DICT，这个解析的方式不断的调用 do_parse 函数，从 1 开始计数，奇数对象当作 key，偶数对象当中 val，直到遇到 NULL，跳出循环停止解析，这个类型可以直接看下面的解析代码，非常清晰。
 - TYPE_CODE，这个类型表示一个 CodeObject 对象，见下面的解析代码，这部分代码可以结合 CodeObject 的字段分析，前面24 个字节表示整数对象，用于表示 CodeObject 的 6 个字段，接下来的是 8 个 PyObject 对象，因此需要调用 do_parse 函数进行解析，然后再解析一个 4 字节的整数表示第一行代码的行号，最后再读取一个 PyObject 对象。
+- TYPE_UNICODE，表示一个字符串，读取方式和 TYPE_INTERNED 一样。
+- TYPE_SET，前 4 个自己表示集合当中元素的个数 size，接下来使用 for 循环读取（调用 do_parse） size 的元素加入到集合当中。
+- TYPE_FROZENSET，和 TYPE_SET 读取方式一样，只不过返回 frozen set 。
+- TYPE_ASCII，和 TYPE_UNICODE 读取方式一样，也可以使用 utf-8 编码，虽然读取的是 ASCII 编码的字符，但是 utf-8 兼容 ASCII 因此也可以。
+- TYPE_ASCII_INTERNED，和 TYPE_ASCII 解析方式一样。
+- TYPE_SMALL_TUPLE，读取一个字节的数据表示元组当中的数据个数，然后读取对应个数的对象。
+- TYPE_SHORT_ASCII，之前是读取四个字节作为长度，现在只读取一个字节作为字节个数。
+- TYPE_SHORT_ASCII_INTERNED，和 TYPE_SHORT_ASCII 读取方式一样，只不过加入到字符串常量池子。
 
 余下的对象的解析不在一一解释，大家可以直接看下方代码，都是比较清晰易懂的。
 
