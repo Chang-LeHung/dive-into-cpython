@@ -117,7 +117,7 @@ type 的种类具体如下所示，它只占用一个字节：
 
 ```python
 class TYPE(Enum):
-    TYPTYPE_NULLE_NULL                 = ord('0')
+    TYPTYPE_NULLE_NULL        = ord('0')
     TYPE_NONE                 = ord('N')
     TYPE_FALSE                = ord('F')
     TYPE_TRUE                 = ord('T')
