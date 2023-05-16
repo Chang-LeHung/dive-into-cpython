@@ -117,7 +117,7 @@ type 的种类具体如下所示，它只占用一个字节：
 
 ```python
 class TYPE(Enum):
-    TYPTYPE_NULLE_NULL        = ord('0')
+    TYPE_NULL                 = ord('0')
     TYPE_NONE                 = ord('N')
     TYPE_FALSE                = ord('F')
     TYPE_TRUE                 = ord('T')
@@ -196,7 +196,7 @@ def do_parse(self):
     self.flag = ByteStreamReader.read_byte(c) & TYPE.FLAG_REF.value
 ```
 
-在上面的代码当中使用函数 do_parse 对一个 python 对象进行解析操作，使用到了 TYPE.FLAG_REF，这个字段的作用表示这个 python 对象是不是一个可引用的，除了 None 、True、False、StopIteration、Ellipsis 是不可引用对象，集合、字典、不可变集合、字符串、字节、CodeObject 等是可引用对象，可引用对象的 type 的最高位是 1（也就是 type 的第 8 个比特位是 1），非可引用对象就是 0 。
+在上面的代码当中使用函数 do_parse 对一个 python 对象进行解析操作，使用到了 TYPE.FLAG_REF，这个字段的作用表示这个 python 对象是不是一个可引用的，除了 None 、True、False、StopIteration、Ellipsis 是不可引用对象，集合、字典、不可变集合、字符串、字节、CodeObject 等是可引用对象，可引用对象的 type 的最高位是 1（也就是 type 的第 8 个比特位是 1），非可引用对象就是 0 。如果是可引用对象需要将这个对象加入到引用列表当中，因为可能会存在一个对象引用其他对象的情况，需要将对象加入到引用队列当中，如果需要对对象进行引用操作直接使用下标从引用数组当中查找即可。所有的可引用对象在创建完成之后都需要加入到引用列表当中。
 
 - TYPE_NULL，这个在 cpython 虚拟机当中就会直接返回 NULL 。
 - TYPE_NONE，返回 python 对象 None 。
@@ -205,7 +205,18 @@ def do_parse(self):
 - TYPE_STOPITER，返回 StopIteration 对象。
 - TYPE_ELLIPSIS，返回 对象 Ellipsis 。
 - TYPE_INT，如果是这个数据类型表示接下来的 4 个字节的数据是一个整数。
-- 
+- TYPE_INT64，这个类型表示接下来的 8 个字节表示一个整数。
+- TYPE_BINARY_FLOAT，浮点数对象，表示接下里啊的 8 个字节表示一个浮点数。
+- TYPE_BINARY_COMPLEX，复数对象，表示接下来有两个 8 个字节的浮点数，分别表示实部和虚部。
+- TYPE_STRING，这个表示一个 bytes 对象，接下来的四个字节表示一个整数 size ，整数 size 的含义表示还需要读取的字节个数，因此接下来的 size 个字节就是 bytes 对象的内容。
+- TYPE_INTERNED，表示一个需要缓存到字符串常量池的字符串，解析方法和 TYPE_STRING 一样首先读取四个字节得到一个整数 size，然后在读取 size 个字节，表示字符串的内容，我们在 python 当中可以直接使用` .decode("utf-8")` 进行编码。
+- TYPE_REF，表示需要引用一个对象，读取四个字节作为整数 size，然后从引用列表当中获取下标为 size 的对象。
+- TYPE_TUPLE，表示一个元组，首先读取四个字节的数据得到一个整数 size ，然后使用 for 循环递归调用 do_parse 函数获取 size 的对象。
+- TYPE_LIST，解析方式和 TYPE_TUPLE 一样，只不过返回列表对象。
+- TYPE_DICT，这个解析的方式不断的调用 do_parse 函数，从 1 开始计数，奇数对象当作 key，偶数对象当中 val，直到遇到 NULL，跳出循环停止解析，这个类型可以直接看下面的解析代码，非常清晰。
+- TYPE_CODE，这个类型表示一个 CodeObject 对象，见下面的解析代码。
+
+余下的对象的解析不在一一解释，大家可以直接看下方代码，都是比较清晰易懂的。
 
 ```python
 class PyObjectLoader(object):
