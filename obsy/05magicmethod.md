@@ -200,3 +200,31 @@ In B __radd__
 2
 ```
 
+除了上面关于数据的魔术方法之外，还有一些其他的魔术方法，具体如下所示：
+
+```python
+object.__neg__(self)
+object.__pos__(self)
+object.__abs__(self)
+object.__invert__(self)
+object.__complex__(self)
+object.__int__(self)
+object.__float__(self)
+object.__index__(self)
+object.__round__(self[, ndigits])
+object.__trunc__(self)
+object.__floor__(self)
+object.__ceil__(self)
+```
+
+- `object.__neg__(self)` 这个方法用于定义负号（-）运算符的行为。当应用负号运算符到一个对象时，会调用该对象的`__neg__`方法。它返回一个表示当前对象相反数的新对象。
+- `object.__pos__(self)` 这个方法用于定义正号（+）运算符的行为。当应用正号运算符到一个对象时，会调用该对象的`__pos__`方法。它返回当前对象的副本。
+- `object.__abs__(self)` 这个方法用于定义绝对值（abs()）函数的行为。当应用`abs()`函数到一个对象时，会调用该对象的`__abs__`方法。它返回当前对象的绝对值。
+- `object.__invert__(self)` 这个方法用于定义按位取反（~）运算符的行为。当应用按位取反运算符到一个对象时，会调用该对象的`__invert__`方法。它返回当前对象按位取反后的结果。
+- `object.__complex__(self)` 这个方法用于定义`complex()`函数的行为，用于将对象转换为复数形式。当应用`complex()`函数到一个对象时，会调用该对象的`__complex__`方法。它返回一个复数对象，表示当前对象。
+- `object.__int__(self)` 这个方法用于定义`int()`函数的行为，用于将对象转换为整数形式。当应用`int()`函数到一个对象时，会调用该对象的`__int__`方法。它返回一个整数对象，表示当前对象。
+- `object.__float__(self)` 这个方法用于定义`float()`函数的行为，用于将对象转换为浮点数形式。当应用`float()`函数到一个对象时，会调用该对象的`__float__`方法。它返回一个浮点数对象，表示当前对象。
+- `object.__index__(self)` 这个方法用于定义`operator.index()`函数的行为，用于将对象转换为整数索引。当应用`operator.index()`函数到一个对象时，会调用该对象的`__index__`方法。它返回一个整数对象，表示当前对象可以用作索引。
+- `object.__round__(self[, ndigits])` 这个方法用于定义`round()`函数的行为，用于对对象进行四舍五入。当应用`round()`函数到一个对象时，会调用该对象的`__round__`方法。可选的`ndigits`参数指定小数位数，默认为None。它返回一个新的对象，表示当前对象四舍五入后的结果。
+- `object.__trunc__(self)` 这个方法用于定义`math.trunc()`函数的行为，用于将对象截断为整数。当应用`math.trunc()`函数到一个对象时，会调用该对象的`__trunc__`方法。
+
