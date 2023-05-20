@@ -72,3 +72,131 @@ False
 
 通过创建两个`Point`对象并使用比较运算符进行比较，我们可以看到根据我们的定义，比较运算符返回了预期的结果。
 
+## 模拟设计一个数学类型
+
+当我们在Python中定义自己的类时，可以通过重写一些特殊方法来改变对象的算术运算行为。这些特殊方法包括`__add__`、`__sub__`、`__mul__`、`__matmul__`、`__truediv__`、`__floordiv__`、`__mod__`、`__divmod__`、`__pow__`、`__lshift__`、`__rshift__`、`__and__`、`__xor__`和`__or__`，它们分别对应于加法、减法、乘法、矩阵乘法、真除法、整除法、取模运算、divmod函数、幂运算、左移位、右移位、按位与、按位异或和按位或的运算符。这些方法允许我们自定义对象之间的算术运算规则。
+
+- `object.__add__(self, other)` 这个方法用于定义加法（+）运算符的行为。当我们使用加法运算符对两个对象进行相加时，会调用该方法。它返回两个对象相加的结果。
+- `object.__sub__(self, other)` 这个方法用于定义减法（-）运算符的行为。当我们使用减法运算符对两个对象进行相减时，会调用该方法。它返回两个对象相减的结果。
+- `object.__mul__(self, other)` 这个方法用于定义乘法（*）运算符的行为。当我们使用乘法运算符对两个对象进行相乘时，会调用该方法。它返回两个对象相乘的结果。
+- `object.__matmul__(self, other)` 这个方法用于定义矩阵乘法（@）运算符的行为。当我们使用矩阵乘法运算符对两个对象进行矩阵乘法时，会调用该方法。它返回两个对象的矩阵乘法结果。
+- `object.__truediv__(self, other)` 这个方法用于定义真除法（/）运算符的行为。当我们使用真除法运算符对两个对象进行相除时，会调用该方法。它返回两个对象相除的结果。
+- `object.__floordiv__(self, other)` 这个方法用于定义整除法（//）运算符的行为。当我们使用整除法运算符对两个对象进行相除并取整时，会调用该方法。它返回两个对象相除取整的结果。
+- `object.__mod__(self, other)` 这个方法用于定义取模（%）运算符的行为。当我们使用取模运算符对两个对象进行取模运算时，会调用该方法。它返回两个对象取模运算的结果。
+- `object.__divmod__(self, other)`这个方法用于定义divmod函数的行为。divmod函数接受两个参数，并返回一个包含商和余数的元组。当我们对两个对象使用divmod函数时，会调用该方法。它返回一个包含两个对象的商和余数的元组。
+- `object.__pow__(self, other[, modulo])` 这个方法用于定义幂运算（**）运算符的行为。当我们使用幂运算符对两个对象进行幂运算时，会调用该方法。它返回两个对象的幂运算结果。可选的`modulo`参数用于指定取模运算的模数。
+- `object.__lshift__(self, other)` 这个方法用于定义左移位（<<）运算符的行为。当我们对一个对象使用左移位运算符时，会调用该方法。它返回对象左移指定位数后的结果。
+- `object.__rshift__(self, other)` 这个方法用于定义右移位（>>）运算符的行为。当我们对一个对象使用右移位运算符时，会调用该方法。它返回对象右移指定位数后的结果。
+- `object.__and__(self, other)` 这个方法用于定义按位与（&）运算符的行为。当我们对两个对象使用按位与运算符时，会调用该方法。它返回两个对象按位与的结果。
+- `object.__xor__(self, other)` 这个方法用于定义按位异或（^）运算符的行为。当我们对两个对象使用按位异或运算符时，会调用该方法。它返回两个对象按位异或的结果。
+- `object.__or__(self, other)` 这个方法用于定义按位或（|）运算符的行为。当我们对两个对象使用按位或运算符时，会调用该方法。它返回两个对象按位或的结果。
+
+通过重写这些方法，我们可以在自定义类中定义对象之间的算术运算规则。当我们使用相应的算术运算符或函数对对象进行操作时，Python会自动调用这些方法，并返回相应的结果。
+
+下面是一个简单的示例，展示如何在自定义类中使用这些算术方法：
+
+```python
+class Vector:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __add__(self, other):
+        return Vector(self.x + other.x, self.y + other.y)
+
+    def __sub__(self, other):
+        return Vector(self.x - other.x, self.y - other.y)
+
+    def __mul__(self, scalar):
+        return Vector(self.x * scalar, self.y * scalar)
+
+    def __truediv__(self, scalar):
+        return Vector(self.x / scalar, self.y / scalar)
+
+    def __repr__(self):
+        return f"Vector[{self.x}, {self.y}]"
+
+
+# 创建两个 Vector 对象
+v1 = Vector(1, 2)
+v2 = Vector(3, 4)
+
+# 使用算术运算符进行操作
+v3 = v1 + v2
+v4 = v1 - v2
+
+v5 = v1 * 2
+v6 = v2 / 3
+
+print(f"{v1 = }")
+print(f"{v2 = }")
+print(f"{v3 = }")
+print(f"{v4 = }")
+print(f"{v5 = }")
+print(f"{v6 = }")
+```
+
+上面的代码输出结果如下所示：
+
+```bash
+v1 = Vector[1, 2]
+v2 = Vector[3, 4]
+v3 = Vector[4, 6]
+v4 = Vector[-2, -2]
+v5 = Vector[2, 4]
+v6 = Vector[1.0, 1.3333333333333333]
+```
+
+在上面的示例中，我们定义了一个名为`Vector`的类，它表示二维向量。我们重写了`__add__`、`__sub__`、`__mul__`和`__truediv__`方法来定义向量之间的加法、减法、乘法和真除法的规则。根据我们的定义，向量的加法是将对应的分量相加，向量的减法是将对应的分量相减，向量的乘法是将每个分量与标量相乘，向量的真除法是将每个分量除以标量。通过创建两个`Vector`对象并使用算术运算符进行操作，我们可以看到根据我们的定义，算术运算符返回了预期的结果。
+
+
+
+当我们在Python中定义自己的类时，除了重写一些魔术方法来改变对象的算术运算行为之外，还可以重写对应的反向魔术方法来处理反向运算。这些反向魔术方法以`__r`开头，后面跟着对应的运算符，例如`__radd__`、`__rsub__`、`__rmul__`等。它们用于在无法直接对另一个对象调用相应的魔术方法时，尝试使用当前对象的魔术方法来处理反向运算。主要有下面的方法：
+
+```python
+object.__iadd__(self, other)
+object.__isub__(self, other)¶
+object.__imul__(self, other)
+object.__imatmul__(self, other)
+object.__itruediv__(self, other)
+object.__ifloordiv__(self, other)
+object.__imod__(self, other)
+object.__ipow__(self, other[, modulo])
+object.__ilshift__(self, other)
+object.__irshift__(self, other)
+object.__iand__(self, other)
+object.__ixor__(self, other)
+object.__ior__(self, other)
+```
+
+比如 a + b，当 a 当中没有定义 `__add__`的时候，就会调用 b 的 `__radd__` 。比如下面这个例子：
+
+```python
+class A:
+
+    def __init__(self, x):
+        self.x = x
+        
+
+class B:
+    def __init__(self, x):
+        self.x = x
+
+    def __radd__(self, other):
+        print("In B __radd__")
+        return self.x + other.x
+
+
+if __name__ == '__main__':
+    a = A(1)
+    b = B(1)
+    print(a + b)
+```
+
+上面的代码输出结果如下所示：
+
+```bash
+In B __radd__
+2
+```
+
