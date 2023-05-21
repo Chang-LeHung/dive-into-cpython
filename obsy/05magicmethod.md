@@ -154,19 +154,20 @@ v6 = Vector[1.0, 1.3333333333333333]
 当我们在Python中定义自己的类时，除了重写一些魔术方法来改变对象的算术运算行为之外，还可以重写对应的反向魔术方法来处理反向运算。这些反向魔术方法以`__r`开头，后面跟着对应的运算符，例如`__radd__`、`__rsub__`、`__rmul__`等。它们用于在无法直接对另一个对象调用相应的魔术方法时，尝试使用当前对象的魔术方法来处理反向运算。主要有下面的方法：
 
 ```python
-object.__iadd__(self, other)
-object.__isub__(self, other)
-object.__imul__(self, other)
-object.__imatmul__(self, other)
-object.__itruediv__(self, other)
-object.__ifloordiv__(self, other)
-object.__imod__(self, other)
-object.__ipow__(self, other[, modulo])
-object.__ilshift__(self, other)
-object.__irshift__(self, other)
-object.__iand__(self, other)
-object.__ixor__(self, other)
-object.__ior__(self, other)
+object.__radd__(self, other)
+object.__rsub__(self, other)
+object.__rmul__(self, other)
+object.__rmatmul__(self, other)
+object.__rtruediv__(self, other)
+object.__rfloordiv__(self, other)
+object.__rmod__(self, other)
+object.__rdivmod__(self, other)
+object.__rpow__(self, other[, modulo])
+object.__rlshift__(self, other)
+object.__rrshift__(self, other)
+object.__rand__(self, other)
+object.__rxor__(self, other)
+object.__ror__(self, other)
 ```
 
 比如 a + b，当 a 当中没有定义 `__add__`的时候，就会调用 b 的 `__radd__` 。比如下面这个例子：
