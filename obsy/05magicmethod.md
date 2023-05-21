@@ -1,6 +1,6 @@
 # 深入理解 python 虚拟机：魔术方法之数学计算
 
-在本篇文章当中主要给大家介绍在 python 当中一些常见的魔术方法。
+在本篇文章当中主要给大家介绍在 python 当中一些常见的魔术方法，本篇文章主要是关于与数学计算相关的一些魔术方法，在很多科学计算的包当中都使用到了这些魔术方法。
 
 ## 大小比较
 
@@ -155,7 +155,7 @@ v6 = Vector[1.0, 1.3333333333333333]
 
 ```python
 object.__iadd__(self, other)
-object.__isub__(self, other)¶
+object.__isub__(self, other)
 object.__imul__(self, other)
 object.__imatmul__(self, other)
 object.__itruediv__(self, other)
