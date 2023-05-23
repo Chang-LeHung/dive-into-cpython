@@ -32,6 +32,7 @@
 - [深入理解python虚拟机：描述器的王炸应用](obsy/02application.md)
 - [深入理解python虚拟机：描述器实现原理与源码分析](obsy/03decriptor.md)
 - [深入理解python虚拟机：魔术方法之数学计算](obsy/05magicmethod.md)
+- [深入理解python虚拟机：花里胡哨的魔术方法](obsy/06magicmethod02.md)
 ### 继承体系
 - [深入理解python虚拟机：多继承与mro](obsy/04mro.md)
 
