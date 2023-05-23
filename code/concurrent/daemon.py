@@ -25,3 +25,5 @@ print("主线程开始执行...")
 time.sleep(5)
 print("主线程执行完毕。")
 
+print(dir(daemon_thread))
+print(vars(daemon_thread))
