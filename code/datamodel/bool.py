@@ -127,3 +127,6 @@ class CustomClass:
 obj = CustomClass()
 print(obj.attribute)
 print(obj.nonexistent_attribute)
+
+s = super(CustomClass, CustomClass)
+print(s.__self__)

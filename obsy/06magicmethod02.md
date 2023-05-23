@@ -254,3 +254,54 @@ None
 ```
 
 首先，我们访问存在的属性 `attribute`，此时 `__getattribute__` 方法被调用，并打印出属性名称 "attribute"，然后返回属性的实际值 "Hello, world!"。接着，我们尝试访问不存在的属性 `nonexistent_attribute`，由于 `__getattribute__` 方法无法找到该属性，因此会调用 `__getattr__` 方法，并打印出属性名称 "nonexistent_attribute" 以及未找到属性的提示信息，然后返回 `None`。
+
+## 上下文管理器
+
+当我们需要在特定的代码块执行前后进行一些操作时，上下文管理器是一种非常有用的工具。上下文管理器可以确保资源的正确分配和释放，无论代码块是否出现异常。在Python中，我们可以通过实现 `__enter__` 和 `__exit__` 方法来创建自定义的上下文管理器。
+
+下面是一个简单的上下文管理器示例，展示了如何使用 `object.__enter__` 和 `object.__exit__` 方法来创建一个文件操作的上下文管理器：
+
+```python
+class FileContextManager:
+    def __init__(self, filename, mode):
+        self.filename = filename
+        self.mode = mode
+        self.file = None
+
+    def __enter__(self):
+        self.file = open(self.filename, self.mode)
+        return self.file
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.file.close()
+
+with FileContextManager('example.txt', 'w') as file:
+    file.write('Hello, world!')
+```
+
+在上述示例中，`FileContextManager` 类实现了 `__enter__` 和 `__exit__` 方法。在 `__enter__` 方法中，我们打开文件并返回文件对象，这样在 `with` 语句块中就可以使用该文件对象。在 `__exit__` 方法中，我们关闭文件。
+
+无论代码块是否抛出异常，`__exit__` 方法都会被调用来确保文件被正确关闭。这样可以避免资源泄露和文件锁定等问题。使用上下文管理器可以简化代码，并提供一致的资源管理方式，特别适用于需要打开和关闭资源的情况，如文件操作、数据库连接等。
+
+上述上下文管理器的 `__exit__` 方法有三个参数：`exc_type`、`exc_value` 和 `traceback`。下面是对这些参数的详细介绍：
+
+- `exc_type`（异常类型）：这个参数表示引发的异常的类型。如果在上下文管理器的代码块中没有引发异常，它的值将为 `None`。如果有异常被引发，`exc_type` 将是引发异常的类型。
+
+- `exc_value`（异常值）：这个参数表示引发的异常的实例。它包含了关于异常的详细信息，如错误消息。如果没有异常被引发，它的值也将为 `None`。
+
+- `traceback`（回溯信息）：这个参数是一个回溯对象，它包含了关于异常的堆栈跟踪信息。它提供了导致异常的代码路径和调用关系。如果没有异常被引发，它的值将为 `None`。
+
+## 总结
+
+在本篇文章当中主要给大家介绍了一些常用和比较重要的魔术方法，这些方法在我们平时用的可能也比较多，比如 hash 和 eq 还有对象的属性访问，为了方便异常处理可以使用 exit 和 enter 这个方法，其实还有很多其他的魔术方法，这些方法在 python 官网都有介绍，可以直接访问 https://docs.python.org/3/reference/datamodel.html 。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
+![](https://img2023.cnblogs.com/blog/2519003/202305/2519003-20230515205927052-1345839185.png)
+
