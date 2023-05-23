@@ -1,6 +1,5 @@
 import threading
 import time
-import json
 
 
 # 定义一个继承自 threading.Thread 的守护线程类
