@@ -531,3 +531,4 @@ reverse_slice(PyObject **lo, PyObject **hi)
 
 总之，了解 Python 列表对象的实现细节有助于我们更好地理解 Python 的内部机制，从而编写更高效、更可靠的 Python 代码。
 
+![](../qrcode2.jpg)
