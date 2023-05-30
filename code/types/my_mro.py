@@ -52,4 +52,3 @@ if __name__ == '__main__':
     print(D.mro())
     print(mro(D))
     assert D.mro() == mro(D)
-    a = 1
