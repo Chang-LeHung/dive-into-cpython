@@ -13,7 +13,7 @@ md2latex.py
 *.fls
 *.log
 *.out
-*.pdf
+./*.pdf
 *.toc
 *gz
 .vscode/
