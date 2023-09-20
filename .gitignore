@@ -17,3 +17,6 @@ main.pdf
 *.toc
 *gz
 .vscode/
+node_modules
+.temp
+.cache
