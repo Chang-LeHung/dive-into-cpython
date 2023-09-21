@@ -1,0 +1,1 @@
+import{_ as t,o as a,c,a as e,d as n}from"./app-6b5e6c63.js";const o={},r=e("h1",{id:"对象数据结构",tabindex:"-1"},[e("a",{class:"header-anchor",href:"#对象数据结构","aria-hidden":"true"},"#"),n(" 对象数据结构")],-1),s=[r];function d(_,i){return a(),c("div",null,s)}const l=t(o,[["render",d],["__file","index.html.vue"]]);export{l as default};
