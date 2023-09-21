@@ -12,7 +12,7 @@ features:
   details: 介绍虚拟机当中的数据结构设计。
 - title: 对象系统
   details: 分析 Python 当中对象系统构建的细节。
-- title: PVM
+- title: 字节码
   details: 介绍 Python 虚拟机当中字节码的含义。
 footer: Copyright © 2023-present changlehung
 ---
