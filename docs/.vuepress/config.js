@@ -33,7 +33,7 @@ export default defineUserConfig({
   lang: "zh-CN",
   title: "Dive into CPython virtual machine",
   description: "深入理解 CPython 虚拟机",
-  
+  base: "/dive-into-cpython/",
   theme: defaultTheme({
     "logo": "profile.jpeg",
     navbar: [
