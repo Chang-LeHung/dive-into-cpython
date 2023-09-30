@@ -1,5 +1,6 @@
 import inspect
 
+
 def bar():
 	print("before yield")
 	res = yield 1
