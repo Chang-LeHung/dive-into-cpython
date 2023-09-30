@@ -15,10 +15,10 @@ if __name__ == '__main__':
 	print(bar)
 	# next(generator)
 	generator.send(None)
-	try:
-		generator.send("None")
-	except StopIteration as e:
-		print(f"{e.value = }")
+try:
+	generator.send("None")
+except StopIteration as e:
+	print(f"{e.value = }")
 
 	print(inspect.isgeneratorfunction(bar))
 	print(oct(bar.__code__.co_flags))

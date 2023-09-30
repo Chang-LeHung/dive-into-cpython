@@ -57,3 +57,37 @@ True
 
 ## 生成器内部实现原理
 
+首先我们需要了解的是，如果我们想让一个生成器对象执行下去的话，我们可以使用 next 或者 send 函数，进行实现：
+
+```python
+>>> next(generator)
+before yield
+1
+>>> next(generator)
+res = None
+after yield
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+StopIteration: Return Value
+```
+
+在 CPython 实现的虚拟机当中，如果我们想要正确的使用 send 函数首先需要让生成器对象执行到第一个 yield 语句，我们可以使用` next(generator)` 或者 `generator.send(None)`。比如在上面的第一条语句当中执行 `next(generator)`，运行到语句 `res = yield 1`，但是这条语句还没有执行完，需要我们调用 send 函数之后才能够完成赋值操作，send 函数的参数会被赋值给变量 res 。当整个函数体执行完成之后虚拟机就会抛出 StopIteration 异常，并且将返回值保存到 StopIteration 异常对象当中：
+
+```python
+>>> generator = bar()
+>>> next(generator)
+before yield
+1
+>>> try:
+...     generator.send("None")
+... except StopIteration as e:
+...     print(f"{e.value = }")
+...
+res = 'None'
+after yield
+e.value = 'Return Value'
+>>>
+```
+
+上面的代码当中可以看到，我们正确的执行力我们在上面谈到的生成器的使用方法，并且将生成器执行完成之后的返回值保存到异常的 value 当中。
+
