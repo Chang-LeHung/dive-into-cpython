@@ -34,4 +34,20 @@ TypeError: 'generator' object is not callable
 >>>
 ```
 
-在上面的代码当中我们要明确 bar 是一个函数，但是这个函数和正常的函数有一点区别，这个函数返回
+在上面的代码当中我们要明确 bar 是一个函数，但是这个函数和正常的函数有一点区别，这个函数在被调用的时候不会直接执行代码，而是会返回一个生成器对象，因为在这个函数体当中使用了 yield 语句，我们称这种函数为生成器函数 (generator function)，在 Python 当中你可以通过查看一个函数的 co_flags 字段查看一个函数的属性，如果这个字段和 0x0020 进行 & 操作之后的结果大于 0，那么就说明这个函数是一个生成器函数。
+
+```python
+>>> (bar.__code__.co_flags & 0x0020) > 0
+True
+>>> bar.__code__.co_flags & 0x0020
+32
+```
+
+从上面的代码当中我们可以看到 bar 就是一个生成器函数，除了上面的方法 Python 的标准库也提供了方法去辅助我们进行判断。
+
+```python
+>>> import inspect
+>>> inspect.isgeneratorfunction(bar)
+True
+```
+
