@@ -55,7 +55,7 @@ True
 
 总之生成器和函数之间的关系为：生成器对象是通过调用生成器函数得到的，调用生成器函数的返回对象是生成器。
 
-## 生成器内部实现原理
+## 虚实交错的时空魔法
 
 首先我们需要了解的是，如果我们想让一个生成器对象执行下去的话，我们可以使用 next 或者 send 函数，进行实现：
 
@@ -90,4 +90,25 @@ e.value = 'Return Value'
 ```
 
 上面的代码当中可以看到，我们正确的执行力我们在上面谈到的生成器的使用方法，并且将生成器执行完成之后的返回值保存到异常的 value 当中。
+
+## 生成器内部实现原理
+
+从上面的关于生成器的使用方式来看，生成器可以在函数执行到一半的时候停止，然后继续恢复执行，为了实现这一点我们就需要有一种手段去保存函数执行的状态。但是我们需要保存函数执行的那些状态呢？最重要的两点就是代码现在执行到什么位置了，因为我们之后要继续从下一条指令开始恢复执行，同时我们需要保存虚拟机的栈空间，就是在执行字节码的时候使用到的 valuestack，注意这不是栈帧，同时还有执行函数的 local space，这里主要是保存一些局部变量的。而这些东西都保存在虚拟机的栈帧当中了，这一点我们在前面的文章当中已经详细介绍过了。
+
+因此根据这些分析我们应该知道了，生成器里面最重要的就是一个虚拟机的栈帧数据结构了。一个生成器对象当中一定需要有一个虚拟机的栈帧，在 CPython 的实现当中，生成器对象的数据结构如下：
+
+```c
+typedef struct
+{
+    /* The gi_ prefix is intended to remind of generator-iterator. */
+    PyObject ob_base;
+    struct _frame *gi_frame;
+    char gi_running;
+    PyObject *gi_code;
+    PyObject *gi_weakreflist;
+    PyObject *gi_name;
+    PyObject *gi_qualname;
+    _PyErr_StackItem gi_exc_state;
+} PyGenObject;
+```
 
