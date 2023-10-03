@@ -112,3 +112,106 @@ typedef struct
 } PyGenObject;
 ```
 
+- gi_frame: 这个字段就是表示生成器所拥有的栈帧。
+- gi_running: 表示协程是否在运行。
+- gi_code: 表示对应协程函数的代码（字节码）。
+- gi_weakreflist: 用于保存这个栈帧对象保存的弱引用对象。
+- gi_name 和 gi_qualname 都是表示生成器的名字，后者更加详细。
+- gi_exc_state: 用于保存执行生成器代码之前的程序状态，因为之前的代码可能已经产生一些异常了，这个主要用于保存之前的程序状态，待生成器返回之后就进行恢复。
+
+```python
+class A:
+	def hello(self):
+		yield 1
+
+
+if __name__ == '__main__':
+	g = A().hello()
+	print(g.__name__)
+	print(g.__qualname__)
+```
+
+上面的程序输出结果为:
+
+```bash
+hello
+A.hello
+```
+
+## 生成器对应的字节码行为
+
+我们通过下面的例子来分析一下，生成器 yield 对应的字节码：
+
+```python
+>>> import dis
+>>> def hello():
+...     yield 1
+...     yield 2
+...
+>>> dis.dis(hello)
+  2           0 LOAD_CONST               1 (1)
+              2 YIELD_VALUE
+              4 POP_TOP
+
+  3           6 LOAD_CONST               2 (2)
+              8 YIELD_VALUE
+             10 POP_TOP
+             12 LOAD_CONST               0 (None)
+             14 RETURN_VALUE
+```
+
+在上面的程序当中只有和生成器相关的字节码为 YIELD_VALUE，在加载完常量 1 之后就会执行 YIELD_VALUE 指令，虚拟机在执行完 yield 指令之后，就会直接返回，此时虚拟机的状态——valuestack 和当前指令执行的位置（在上面的这个例子当中就是 4）都会被保存到虚拟机栈帧当中，当下一次执行生成器的代码的时候就会直接从 POP_TOP 指令直接执行。
+
+我们再来看一下另外一个比较重要的指令 YIELD_FROM:
+
+```python
+>>> def generator_b(gen):
+...     yield from gen
+...
+>>> dis.dis(generator_b)
+  2           0 LOAD_FAST                0 (gen)
+              2 GET_YIELD_FROM_ITER
+              4 LOAD_CONST               0 (None)
+              6 YIELD_FROM
+              8 POP_TOP
+             10 LOAD_CONST               0 (None)
+             12 RETURN_VALUE
+```
+
+我们现在用一个简单的例子重新回顾一下程序的行为：
+
+```python
+def generator_a():
+	yield 1
+	yield 2
+
+
+def generator_b(gen):
+	yield from gen
+
+
+if __name__ == '__main__':
+	gen = generator_b(generator_a())
+	print(gen.send(None))
+	print(gen.send(None))
+	try:
+		gen.send(None)
+	except StopIteration:
+		print("generator exit")
+```
+
+上面的程序输出结果如下所示：
+
+```bash
+1
+2
+generator exit
+```
+
+从上面程序的输出结果我们可以看到 generator_a 的两个值都会被返回，这些魔法隐藏在字节码 YIELD_FROM 当中。YIELD_FROM 字节码会调用栈顶上的生成器对象的 send 方法，并且将参数生成器对象 gen 的返回结果返回，比如 1 和 2 这两个值会被返回到 generator_b ，然后 generator_b 会将这个结果继续传播出来。
+
+- 在这个字节码执行最后会进行判断虚拟机当中是否出现了 StopIteration 异常，如果出现了则说 yield from 的生成器已经执行完了，则 generator_b 继续往下执行。
+- 如果没有 StopIteration 异常，则说明 yield from 的生成器没有执行完成，这个时候虚拟机会将当前栈帧的字节码执行位置往前移动，这么做的目的是让下一次生成器执行的时候继续执行 YIELD_FROM 字节码，这就是 YIELD_FROM 能够将另一个生成器对象执行完整的秘密。
+
+
+
