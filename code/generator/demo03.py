@@ -6,7 +6,7 @@ def generator_a():
 	yield 2
 
 
-def generator_b(gen):	
+def generator_b(gen):
 	yield from gen
 
 
