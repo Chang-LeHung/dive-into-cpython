@@ -213,5 +213,16 @@ generator exit
 - 在这个字节码执行最后会进行判断虚拟机当中是否出现了 StopIteration 异常，如果出现了则说 yield from 的生成器已经执行完了，则 generator_b 继续往下执行。
 - 如果没有 StopIteration 异常，则说明 yield from 的生成器没有执行完成，这个时候虚拟机会将当前栈帧的字节码执行位置往前移动，这么做的目的是让下一次生成器执行的时候继续执行 YIELD_FROM 字节码，这就是 YIELD_FROM 能够将另一个生成器对象执行完整的秘密。
 
+## 总结
 
+在本篇文章当中主要分析的生成器内部实现原理和相关的两个重要的字节码，分析了生成器能够停下来还能够恢复执行的原因。本文最重要的两点就是区分函数和生成器和 YIELD 、YIELD_FROM 两个字节码，生成器是生成器函数返回的对象，YIELD 会直接进行函数返回，虚拟机不会继续往下执行，YIELD_FROM 除了会进行函数返回还会将字节码的执行位置往前移动，以保证 YIELD_FROM 下一次还能够被执行。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+![](../qrcode2.jpg)
 
