@@ -33,6 +33,7 @@
 - [深入理解 Python 虚拟机：调试器实现原理与源码分析](pvm/08debugger.md)
 - [深入理解 Python 虚拟机：破解核心魔法——反序列化 pyc 文件](pvm/09binpyc.md)
 - [深入理解 Python 虚拟机：生成器停止背后的魔法](pvm/10generator.md)
+- [深入理解 Python 虚拟机：原来虚拟机是这么实现闭包的](pvm/11closure.md)
 
 ## 对象系统
 
