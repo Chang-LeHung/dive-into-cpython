@@ -44,3 +44,34 @@ print(result2)
 
 从上面的输出结果可以看到两个闭包（从 Python 层面来说也是函数）所在的内存地址是不一样的，因此每次调用都会返回一个不同的函数（闭包），因此两个闭包相互不影响。
 
+再来看下面的程序，他们的执行结果是什么？：
+
+```python
+def outer_function(x):
+	def inner_function(y):
+		nonlocal x
+		x += 1
+		return x + y
+
+	return inner_function
+
+
+closure1 = outer_function(10)
+closure2 = outer_function(20)
+
+result1 = closure1(5)
+print(result1)
+result1 = closure1(5)
+print(result1)
+result2 = closure2(5)
+print(result2)
+```
+
+输出结果为：
+
+```bash
+16
+17
+26
+```
+

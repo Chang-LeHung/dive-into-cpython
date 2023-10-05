@@ -5,9 +5,7 @@ def outer_function(x):
 	# 外部函数定义了一个局部变量 x
 
 	def inner_function(y):
-		nonlocal x
 		# 内部函数可以访问外部函数的局部变量 x
-		x += 1
 		return x + y
 
 	# 外部函数返回内部函数的引用，形成闭包
