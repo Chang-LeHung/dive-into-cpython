@@ -32,3 +32,15 @@ print(result2)
 ```
 
 在上面的示例中，`outer_function` 是外部函数，它接受一个参数 `x`，然后定义了一个内部函数 `inner_function`，它接受另一个参数 `y`，并返回 `x + y` 的结果。当我们调用 `outer_function` 时，它返回了一个对 `inner_function` 的引用，形成了一个闭包。这个闭包可以保持对 `x` 的引用，即使 `outer_function` 已经执行完毕。
+
+在上面的例子当中 `outer_function` 的返回值就是闭包，这个闭包包含函数和环境，函数是 `inner_function` ，环境就是 `x`，从程序语义的层面来说返回值是一个闭包，但是如果直接从 Python 层面来看，返回值也是一个函数，现在我们打印两个闭包看一下结果：
+
+```python
+>>> print(closure1)
+<function outer_function.<locals>.inner_function at 0x102e17a60>
+>>> print(closure2)
+<function outer_function.<locals>.inner_function at 0x1168bc430>
+```
+
+从上面的输出结果可以看到两个闭包（从 Python 层面来说也是函数）所在的内存地址是不一样的，因此每次调用都会返回一个不同的函数（闭包），因此两个闭包相互不影响。
+

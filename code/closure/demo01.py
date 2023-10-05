@@ -1,3 +1,6 @@
+import inspect
+
+
 def outer_function(x):
 	# 外部函数定义了一个局部变量 x
 
@@ -21,3 +24,8 @@ result2 = closure2(5)  # 计算 20 + 5，结果是 25
 
 print(result1)
 print(result2)
+print(closure1)
+print(closure2)
+
+print(inspect.isfunction(closure1))
+print(inspect.isfunction(closure2))
