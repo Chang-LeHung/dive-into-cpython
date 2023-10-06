@@ -163,7 +163,9 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 我们再来看一下函数 inner_function 的字节码
 
 - LOAD_DEREF：这个字节码会从栈帧的 cellvars 数组当中加载下标为 oparg 的对象，cellvars 就是刚刚在创建函数的时候所保存的，也就是 outter_function 传递给 inner_function 的元祖。直观的来说就是将外部函数的 x 加载到 valuestack 当中。
+- STORE_DEREF：就是将栈顶的元素弹出，保存到 cellvars 数组对应的下标 (oparg) 当中。
 
 后续的字节码就很简单了，这里不做详细分析了。
 
->如果上面的过程太复杂，我们在这里从整体的角度再叙述一下，简单说来就是当有代码调用 outer_function 的时候，传递进来的参数，会在 outer_function 创建函数 inner_function 的时候当作闭包参数传递给 inner_function，这样 inner_function 就能够使用 outer_function 的参数了，因此这也不难理解，每次我们调用函数 outer_function 都会返回一个新的闭包，因为我们每次调用函数 outer_function 时，它都会创建一个新的函数，而这个这些被创建的函数唯一的区别就是他们的闭包参数不同。
+>如果上面的过程太复杂，我们在这里从整体的角度再叙述一下，简单说来就是当有代码调用 outer_function 的时候，传递进来的参数，会在 outer_function 创建函数 inner_function 的时候当作闭包参数传递给 inner_function，这样 inner_function 就能够使用 outer_function 的参数了，因此这也不难理解，每次我们调用函数 outer_function 都会返回一个新的闭包，因为我们每次调用函数 outer_function 时，它都会创建一个新的函数，而这个这些被创建的函数唯一的区别就是他们的闭包参数不同。这也就解释了再之前的例子当中为什么两个闭包他们互不影响，因为函数 outer_function 创建了两个不同的函数。
+
