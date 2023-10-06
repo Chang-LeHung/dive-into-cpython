@@ -160,3 +160,10 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 
 - MAKE_FUNCTION：这条字节码的主要作用是根据上面三个栈里面的对象创建一个函数，其中最重要的字段就是 CodeObject 这里面保存了函数最重要的代码，最下面的元祖就是 inner_function 的 cellvars，当虚拟机在创建函数的时候就已经把这个对象保存下来了，然后在创建栈帧的时候会将这个对象保存到栈帧。需要注意的是这里所保存的变量就是函数参数 x，他们是同一个对象。
 
+我们再来看一下函数 inner_function 的字节码
+
+- LOAD_DEREF：这个字节码会从栈帧的 cellvars 数组当中加载下标为 oparg 的对象，cellvars 就是刚刚在创建函数的时候所保存的，也就是 outter_function 传递给 inner_function 的元祖。直观的来说就是将外部函数的 x 加载到 valuestack 当中。
+
+后续的字节码就很简单了，这里不做详细分析了。
+
+>如果上面的过程太复杂，我们在这里从整体的角度再叙述一下，简单说来就是当有代码调用 outer_function 的时候，传递进来的参数，会在 outer_function 创建函数 inner_function 的时候当作闭包参数传递给 inner_function，这样 inner_function 就能够使用 outer_function 的参数了，因此这也不难理解，每次我们调用函数 outer_function 都会返回一个新的闭包，因为我们每次调用函数 outer_function 时，它都会创建一个新的函数，而这个这些被创建的函数唯一的区别就是他们的闭包参数不同。
