@@ -150,7 +150,7 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 
 我们现在来详细解释一下上面的字节码含义：
 
-- LOAD_CLOSURE：这个就是从栈帧对象当中加载指定下标的 freevars 变量，在上面的字节码当中就是加载栈帧对象 freevars 当中下标为 0 的对象，对应的参数就是 x 。也就是将参数 x 加载到栈帧上。
+- LOAD_CLOSURE：这个就是从栈帧对象当中加载指定下标的 cellvars 变量，在上面的字节码当中就是加载栈帧对象 cellvars 当中下标为 0 的对象，对应的参数就是 x 。也就是将参数 x 加载到栈帧上。
 - BUILD_TUPLE：从栈帧当中弹出 oparg (字节码参数) 个参数，并且将这些参数封装成元祖，在上面的程序当中 oparg = 1 。
 - LOAD_CONST：加载对应的常量到栈帧当中，这里是会加载两个常量，分别是函数对应的 CodeObject 和函数名。
 
@@ -158,14 +158,18 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 
 ![](../images/86stack.png)
 
-- MAKE_FUNCTION：这条字节码的主要作用是根据上面三个栈里面的对象创建一个函数，其中最重要的字段就是 CodeObject 这里面保存了函数最重要的代码，最下面的元祖就是 inner_function 的 cellvars，当虚拟机在创建函数的时候就已经把这个对象保存下来了，然后在创建栈帧的时候会将这个对象保存到栈帧。需要注意的是这里所保存的变量就是函数参数 x，他们是同一个对象。
+- MAKE_FUNCTION：这条字节码的主要作用是根据上面三个栈里面的对象创建一个函数，其中最重要的字段就是 CodeObject 这里面保存了函数最重要的代码，最下面的元祖就是 inner_function 的 freevars，当虚拟机在创建函数的时候就已经把这个对象保存下来了，然后在创建栈帧的时候会将这个对象保存到栈帧。需要注意的是这里所保存的变量就是函数参数 x，他们是同一个对象。这就使得内部函数每次调用的时候都可以使用参数 x 。
 
 我们再来看一下函数 inner_function 的字节码
 
-- LOAD_DEREF：这个字节码会从栈帧的 cellvars 数组当中加载下标为 oparg 的对象，cellvars 就是刚刚在创建函数的时候所保存的，也就是 outter_function 传递给 inner_function 的元祖。直观的来说就是将外部函数的 x 加载到 valuestack 当中。
+- LOAD_DEREF：这个字节码会从栈帧的 freevars 数组当中加载下标为 oparg 的对象，freevars 就是刚刚在创建函数的时候所保存的，也就是 outter_function 传递给 inner_function 的元祖。直观的来说就是将外部函数的 x 加载到 valuestack 当中。
 - STORE_DEREF：就是将栈顶的元素弹出，保存到 cellvars 数组对应的下标 (oparg) 当中。
 
 后续的字节码就很简单了，这里不做详细分析了。
 
->如果上面的过程太复杂，我们在这里从整体的角度再叙述一下，简单说来就是当有代码调用 outer_function 的时候，传递进来的参数，会在 outer_function 创建函数 inner_function 的时候当作闭包参数传递给 inner_function，这样 inner_function 就能够使用 outer_function 的参数了，因此这也不难理解，每次我们调用函数 outer_function 都会返回一个新的闭包，因为我们每次调用函数 outer_function 时，它都会创建一个新的函数，而这个这些被创建的函数唯一的区别就是他们的闭包参数不同。这也就解释了再之前的例子当中为什么两个闭包他们互不影响，因为函数 outer_function 创建了两个不同的函数。
+>如果上面的过程太复杂，我们在这里从整体的角度再叙述一下，简单说来就是当有代码调用 outer_function 的时候，传递进来的参数，会在 outer_function 创建函数 inner_function 的时候当作闭包参数传递给 inner_function，这样 inner_function 就能够使用 outer_function 的参数了，因此这也不难理解，每次我们调用函数 outer_function 都会返回一个新的闭包（实际就是返回的新创建的函数），因为我们每次调用函数 outer_function 时，它都会创建一个新的函数，而这些被创建的函数唯一的区别就是他们的闭包参数不同。这也就解释了再之前的例子当中为什么两个闭包他们互不影响，因为函数 outer_function 创建了两个不同的函数。
+
+## 总结
+
+在本篇文章当中详细介绍了闭包的使用例子和使用原理，理解闭包最重要的一点就是函数和环境，也就是和函数绑定在一起的变量。当进行函数调用的时候函数就会创建一个新的内部函数，也就是闭包。在虚拟机内部实现闭包主要是通过函数参数传递和函数生成实现的，当执行 MAKE_FUNCTION 创建新函数的时候，会将外部函数的闭包变量 (在文章中就是 x ) 传递给内部函数，然后保存在内部函数当中，之后的每一次调用都是用这个变量，从而实现闭包的效果。
 
