@@ -44,7 +44,7 @@ print(result2)
 
 从上面的输出结果可以看到两个闭包（从 Python 层面来说也是函数）所在的内存地址是不一样的，因此每次调用都会返回一个不同的函数（闭包），因此两个闭包相互不影响。
 
-再来看下面的程序，他们的执行结果是什么？：
+再来看下面的程序，他们的执行结果是什么？
 
 ```python
 def outer_function(x):
@@ -76,4 +76,75 @@ print(result2)
 ```
 
 根据上面的分析 closure1 和 closure2 分别是两个不同的闭包，两个闭包的 x 也是各自的 x ，因此前一个闭包的 x 变化并不会影响第二个闭包，所以 result2 的输出结果为 26。
+
+## 闭包相关的字节码
+
+在正式了解闭包相关的字节码之前我们首先来重新回顾一下和闭包有关的 CodeObject 当中的字段：
+
+```python
+def outer_function(x):
+	def inner_function(y):
+		nonlocal x
+		x += 1
+		return x + y
+
+	print(inner_function.__code__.co_freevars)  # ('x',)
+	print(inner_function.__code__.co_cellvars)  # （）
+	return inner_function
+
+
+if __name__ == '__main__':
+	out = outer_function(1)
+	print(outer_function.__code__.co_freevars)  # （）
+	print(outer_function.__code__.co_cellvars)  # （'x', ）
+```
+
+cellvars 表示在其他函数当中会使用本地定义的变量，freevars 表示本地会使用其他函数定义的变量。在上面的例子当中，outer_function 当中的变量 x 会被 inner_function 使用，而cellvars 表示在其他函数当中会使用本地定义的变量，所以 outer_function 的这个字段为 （'x', ）。如果要了解详细的信息可以参考这篇文章 [深入理解 python 虚拟机：字节码灵魂——Code obejct](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/02codeobject.md#深入理解-python-虚拟机字节码灵魂code-obejct) 。
+
+上面的内容我们简要回顾了一下 CodeObject 当中的两个非常重要的字段，
+
+下面我们分析一下和闭包相关的字节码操作
+
+```python
+def outer_function(x):
+	def inner_function(y):
+		nonlocal x
+		x += 1
+		return x + y
+
+	return inner_function
+
+
+if __name__ == '__main__':
+	import dis
+
+	dis.dis(outer_function)
+```
+
+上面的代码回输出 outer_function 和 inner_function 对应的字节码：
+
+``` bash
+  2           0 LOAD_CLOSURE             0 (x)
+              2 BUILD_TUPLE              1
+              4 LOAD_CONST               1 (<code object inner_function at 0x100757a80, file "closure_bytecode.py", line 2>)
+              6 LOAD_CONST               2 ('outer_function.<locals>.inner_function')
+              8 MAKE_FUNCTION            8 (closure)
+             10 STORE_FAST               1 (inner_function)
+
+  7          12 LOAD_FAST                1 (inner_function)
+             14 RETURN_VALUE
+
+Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecode.py", line 2>:
+  4           0 LOAD_DEREF               0 (x)
+              2 LOAD_CONST               1 (1)
+              4 INPLACE_ADD
+              6 STORE_DEREF              0 (x)
+
+  5           8 LOAD_DEREF               0 (x)
+             10 LOAD_FAST                0 (y)
+             12 BINARY_ADD
+             14 RETURN_VALUE
+```
+
+
 
