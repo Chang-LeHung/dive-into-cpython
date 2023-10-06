@@ -173,3 +173,12 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 
 在本篇文章当中详细介绍了闭包的使用例子和使用原理，理解闭包最重要的一点就是函数和环境，也就是和函数绑定在一起的变量。当进行函数调用的时候函数就会创建一个新的内部函数，也就是闭包。在虚拟机内部实现闭包主要是通过函数参数传递和函数生成实现的，当执行 MAKE_FUNCTION 创建新函数的时候，会将外部函数的闭包变量 (在文章中就是 x ) 传递给内部函数，然后保存在内部函数当中，之后的每一次调用都是用这个变量，从而实现闭包的效果。
 
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+![](../qrcode2.jpg)
+
