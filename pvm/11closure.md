@@ -102,6 +102,8 @@ if __name__ == '__main__':
 cellvars 表示在其他函数当中会使用本地定义的变量，freevars 表示本地会使用其他函数定义的变量。在上面的例子当中，outer_function 当中的变量 x 会被 inner_function 使用，而cellvars 表示在其他函数当中会使用本地定义的变量，所以 outer_function 的这个字段为 （'x', ）。如果要了解详细的信息可以参考这篇文章 [深入理解 python 虚拟机：字节码灵魂——Code obejct](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/02codeobject.md#深入理解-python-虚拟机字节码灵魂code-obejct) 。
 
 >上面的内容我们简要回顾了一下 CodeObject 当中的两个非常重要的字段，这两个字段在进行传递参数的时候非常重要，当我们在进行函数调用的时候，虚拟机会新建一个栈帧，在进行新建栈帧的过程当中，如果发现 co_freevars 存储的字符串变量也是函数参数的时候，除了会在局部变量当中保存一份参数之外，还会将传递过来的参数保存到栈帧对象的其他位置当中（这里需要注意一下，CodeObject 当中的 co_freevars 保存的是字符串，也就是变量名，栈帧当中保存的是变量名字对应的真实对象，也就是函数参数），这么做的目的是为了方面后面字节码 LOAD_CLOSURE 的操作，因为实际虚拟机存储的是指向对象的指针，因此浪费不了多少空间。
+>
+>实际在虚拟机的栈帧对象当中 freevars 是一个数组，后续的字节码都是会根据数组下标对这些变量进行操作。
 
 下面我们分析一下和闭包相关的字节码操作
 
@@ -148,4 +150,13 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 
 我们现在来详细解释一下上面的字节码含义：
 
-- LOAD_CLOSURE
+- LOAD_CLOSURE：这个就是从栈帧对象当中加载指定下标的 freevars 变量，在上面的字节码当中就是加载栈帧对象 freevars 当中下标为 0 的对象，对应的参数就是 x 。也就是将参数 x 加载到栈帧上。
+- BUILD_TUPLE：从栈帧当中弹出 oparg (字节码参数) 个参数，并且将这些参数封装成元祖，在上面的程序当中 oparg = 1 。
+- LOAD_CONST：加载对应的常量到栈帧当中，这里是会加载两个常量，分别是函数对应的 CodeObject 和函数名。
+
+在执行完上的字节码之后栈帧当中 valuestack 如下所示：
+
+![](../images/86stack.png)
+
+- MAKE_FUNCTION：这条字节码的主要作用是根据上面三个栈里面的对象创建一个函数，其中最重要的字段就是 CodeObject 这里面保存了函数最重要的代码，最下面的元祖就是 inner_function 的 cellvars，当虚拟机在创建函数的时候就已经把这个对象保存下来了，然后在创建栈帧的时候会将这个对象保存到栈帧。需要注意的是这里所保存的变量就是函数参数 x，他们是同一个对象。
+
