@@ -156,7 +156,7 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 
 在执行完上的字节码之后栈帧当中 valuestack 如下所示：
 
-![](https://img2023.cnblogs.com/blog/2519003/202310/2519003-20231007130617722-2146341323.png)
+![](https://img2023.cnblogs.com/blog/2519003/202310/2519003-20231007130727241-1806043651.png)
 
 - MAKE_FUNCTION：这条字节码的主要作用是根据上面三个栈里面的对象创建一个函数，其中最重要的字段就是 CodeObject 这里面保存了函数最重要的代码，最下面的元祖就是 inner_function 的 freevars，当虚拟机在创建函数的时候就已经把这个对象保存下来了，然后在创建栈帧的时候会将这个对象保存到栈帧。需要注意的是这里所保存的变量就是函数参数 x，他们是同一个对象。这就使得内部函数每次调用的时候都可以使用参数 x 。
 
@@ -180,5 +180,5 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
 
 关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
-![](https://img2023.cnblogs.com/blog/2519003/202310/2519003-20231007130618260-1897551514.png)
+![](https://img2023.cnblogs.com/blog/2519003/202310/2519003-20231007130727540-1556371129.png)
 
