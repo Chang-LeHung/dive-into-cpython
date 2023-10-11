@@ -46,15 +46,15 @@ I'm Alice and I'm 10 years old
 
 ## super函数的原理
 
-要理解`super`函数的原理，我们需要了解Python中的多重继承和方法解析顺序（Method Resolution Order，MRO）。
+要理解`super`函数的原理，我们需要了解Python中的多重继承和方法解析顺序（Method Resolution Order，MRO）。多继承是指一个类可以同时继承多个父类。在Python中，每个类都有一个内置属性`__mro__`，它记录了方法解析顺序。MRO是根据C3线性化算法生成的，它决定了在多重继承中调用方法的顺序。当对象进行方法调用的时候，就会从类的 mro 第一个类开始寻找，直到最后一个类位置，当第一次发现对应的类有相应的方法时就进行返回就调用这个类的这个方法。关于 C3 算法和 mro 的细节可以参考文章 [深入理解 python 虚拟机：多继承与 mro](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/obsy/04mro.md#深入理解-python-虚拟机多继承与-mro) 。
 
-多重继承是指一个类可以同时继承多个父类。在Python中，每个类都有一个内置属性`__mro__`，它记录了方法解析顺序。MRO是根据C3线性化算法生成的，它决定了在多重继承中调用方法的顺序。关于 C3 算法的细节可以参考文章 [深入理解 python 虚拟机：多继承与 mro](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/obsy/04mro.md#深入理解-python-虚拟机多继承与-mro) 。
+Super 类的的签名为 *class* **super**(*type*, *object_or_type=None*)，这个类返回的是一个 super 对象，也是一个代理对象，当使用这个对象进行方法调用的时候，这个调用会转发给 *type* 父类或同级类。object_or_type确定要搜索的方法解析顺序。搜索从 *type* 后面的类开始。
 
-`super`函数的实现原理是根据当前类的 MRO 找到下一个要调用的方法。它通过检查当前类的 MRO 列表，找到下一个类的方法，并返回一个绑定了下一个类的实例。这意味着当我们在子类中调用`super().method()`时，实际上是在调用父类的方法。
+例如，如果 的 object_or_type 是 `D -> B -> C -> A -> object` 并且类型object_or_type的值是 `B` ，则进行方法搜索的顺序为`C -> A -> object` 。
 
 ## CPython的实现
 
-CPython是Python的默认解释器，它使用C语言实现。在CPython中，`super`函数的实现是通过查找对象的`__class__`属性来确定下一个要调用的方法。`__class__`属性指向对象所属的类。
+CPython 是 Python 的默认解释器，它使用 C 语言实现。在 CPython 中，`super`函数的实现是通过查找对象的`__class__`属性来确定下一个要调用的方法。`__class__`属性指向对象所属的类。
 
 CPython使用`PyTypeObject`结构体来表示每个类。该结构体包含了类的名称、父类、方法表等信息。在方法表中，每个方法都有一个指向实际函数的指针。
 
@@ -64,6 +64,3 @@ CPython使用`PyTypeObject`结构体来表示每个类。该结构体包含了�
 
 `super`函数是Python中重要的功能之一，它允许我们方便地调用父类的方法和访问父类的属性。它的实现原理是根据当前类的MRO找到下一个要调用的方法。在CPython中，`super`函数的实现是通过查找对象的`__class__`属性来确定下一个要调用的方法。
 
-通过深入理解`super`函数的使用和原理，我们可以更好地利用继承和多重继承的强大功能，编写出更灵活、可维护的Python代码。
-
-希望本文对您对`super`函数有所帮助。如有任何疑问，请随时提问。
