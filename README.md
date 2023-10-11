@@ -48,6 +48,7 @@
 ### 继承体系
 
 - [深入理解 Python 虚拟机：多继承与mro](obsy/04mro.md)
+- [深入理解 Python 虚拟机：super超级魔法的背后原理](obsy/07super.md)
 
 ## 给 cpython 添加 C 扩展模块
 
