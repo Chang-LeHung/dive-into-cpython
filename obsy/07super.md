@@ -48,9 +48,58 @@ I'm Alice and I'm 10 years old
 
 要理解`super`函数的原理，我们需要了解Python中的多重继承和方法解析顺序（Method Resolution Order，MRO）。多继承是指一个类可以同时继承多个父类。在Python中，每个类都有一个内置属性`__mro__`，它记录了方法解析顺序。MRO是根据C3线性化算法生成的，它决定了在多重继承中调用方法的顺序。当对象进行方法调用的时候，就会从类的 mro 第一个类开始寻找，直到最后一个类位置，当第一次发现对应的类有相应的方法时就进行返回就调用这个类的这个方法。关于 C3 算法和 mro 的细节可以参考文章 [深入理解 python 虚拟机：多继承与 mro](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/obsy/04mro.md#深入理解-python-虚拟机多继承与-mro) 。
 
-Super 类的的签名为 *class* **super**(*type*, *object_or_type=None*)，这个类返回的是一个 super 对象，也是一个代理对象，当使用这个对象进行方法调用的时候，这个调用会转发给 *type* 父类或同级类。object_or_type确定要搜索的方法解析顺序。搜索从 *type* 后面的类开始。
+Super 类的的签名为 *class* **super**(*type*, *object_or_type=None*)，这个类返回的是一个 super 对象，也是一个代理对象，当使用这个对象进行方法调用的时候，这个调用会转发给 *type* 父类或同级类。object_or_type 确定要搜索的方法解析顺序（也就是通过object_or_type得到具体的 mro），对于方法的搜索从 *type* 后面的类开始。
 
-例如，如果 的 object_or_type 是 `D -> B -> C -> A -> object` 并且类型object_or_type的值是 `B` ，则进行方法搜索的顺序为`C -> A -> object` 。
+例如，如果 的 object_or_type 的 mro 是 `D -> B -> C -> A -> object` 并且*type*的值是 `B` ，则进行方法搜索的顺序为`C -> A -> object` ，因为搜索是从 *type* 的下一个类开始的。
+
+下面我们使用一个例子来实际体验一下：
+
+```python
+class A:
+
+	def __init__(self):
+		super().__init__()
+
+	def method(self):
+		print("In method of A")
+
+
+class B(A):
+
+	def __init__(self):
+		super().__init__()
+
+	def method(self):
+		print("In method of B")
+
+
+class C(B):
+
+	def __init__(self):
+		super().__init__()
+
+	def method(self):
+		print("In method of C")
+
+
+if __name__ == '__main__':
+	print(C.__mro__)
+	obj = C()
+	s = super(C, obj)
+	s.method()
+	s = super(B, obj)
+	s.method()
+```
+
+上面的程序输出结果为：
+
+```bash
+(<class '__main__.C'>, <class '__main__.B'>, <class '__main__.A'>, <class 'object'>)
+In method of B
+In method of A
+```
+
+在上面的代码当中继承顺序为，C 继承 B，B 继承 A，C 的 mro 为，(C, B, A, object)，`super(C, obj)` 表示从 C 的下一个类开始搜索，因此具体的搜索顺序为 ( B, A, object)，因此此时调用 method 方法的时候，会调用 B 的 method 方法，`super(B, obj)` 表示从 B 的下一个类开始搜索，因此搜索顺序为 (A, object)，因此此时调用的是 A 的 method 方法。
 
 ## CPython的实现
 

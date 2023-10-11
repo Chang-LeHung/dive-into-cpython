@@ -26,9 +26,9 @@ class C(B):
 
 
 if __name__ == '__main__':
+	print(C.__mro__)
 	obj = C()
 	s = super(C, obj)
 	s.method()
 	s = super(B, obj)
 	s.method()
-	print(C.__mro__)
