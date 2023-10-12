@@ -156,17 +156,111 @@ if __name__ == '__main__':
 {'self': <__main__.Demo object at 0x103059040>}
 ```
 
-从上面的例子我们可以看到当我们进行方法调用且方法当中有 super 的使用时，栈帧的局部变量表当中会多一个字段 `__class__`，这个字段表示对应的类，比如在 Demo 类当中，这个字段就是 Demo，在类 A 当中这个字段就是 A 。
+从上面的例子我们可以看到当我们进行方法调用且方法当中有 super 的使用时，栈帧的局部变量表当中会多一个字段 `__class__`，这个字段表示对应的类，比如在 Demo 类当中，这个字段就是 Demo，在类 A 当中这个字段就是 A 。为什么要进行这样的处理呢，这是因为需要调用相应位置类的父类方法，因此所有的使用 super 的位置的 *type* 都必须是所在类。而在前面我们已经说明了*object_or_type* 表示的是栈帧当中的第一个参数，也就是对象 self，这一点从上面的局部变量表也可以看出来，通过这个对象我们可以知道对象本身的 mro 序列了。在 super 得到两个参数之后，也就能够实现对应的功能了。
 
 ## CPython的实现
 
-CPython 是 Python 的默认解释器，它使用 C 语言实现。在 CPython 中，`super`函数的实现是通过查找对象的`__class__`属性来确定下一个要调用的方法。`__class__`属性指向对象所属的类。
+在本小节当中我们来仔细看一下 CPython 内部是如何实现 super 类的，首先来看一下他的 `__init__` 方法（删除了error checking 代码）：
 
-CPython使用`PyTypeObject`结构体来表示每个类。该结构体包含了类的名称、父类、方法表等信息。在方法表中，每个方法都有一个指向实际函数的指针。
+```c
+static int
+super_init(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    superobject *su = (superobject *)self;
+    PyTypeObject *type = NULL; // 表示从哪个类的后面开始查询，含义和 上文当中的 type 一样
+    PyObject *obj = NULL; // 表示传递过来的对象
+    PyTypeObject *obj_type = NULL; // 表示对象 obj 的类型
+    // 获取 super 的两个参数 type 和 object_or_type
+    if (!PyArg_ParseTuple(args, "|O!O:super", &PyType_Type, &type, &obj))
+        return -1;
 
-当使用`super`函数时，CPython会根据当前对象的`__class__`属性和方法名，在父类的方法表中找到对应的方法，并调用它。
+    if (type == NULL) {
+        /* Call super(), without args -- fill in from __class__
+           and first local variable on the stack. */
+        PyFrameObject *f;
+        PyCodeObject *co;
+        Py_ssize_t i, n;
+        f = _PyThreadState_GET()->frame; // 得到当前栈帧
+        // 栈帧的第一个参数表示对象
+        obj = f->f_localsplus[0];
+        if (obj == NULL && co->co_cell2arg) {
+            /* The first argument might be a cell. */
+            n = PyTuple_GET_SIZE(co->co_cellvars);
+            for (i = 0; i < n; i++) {
+                if (co->co_cell2arg[i] == 0) {
+                    PyObject *cell = f->f_localsplus[co->co_nlocals + i];
+                    assert(PyCell_Check(cell));
+                    obj = PyCell_GET(cell);
+                    break;
+                }
+            }
+        }
+        if (co->co_freevars == NULL)
+            n = 0;
+        else {
+            assert(PyTuple_Check(co->co_freevars));
+            n = PyTuple_GET_SIZE(co->co_freevars);
+        }
+        // 下面的代码表示获取 type 对象，也就是从局部变量表当中获取到 __class__ 
+        for (i = 0; i < n; i++) {
+            PyObject *name = PyTuple_GET_ITEM(co->co_freevars, i);
+            assert(PyUnicode_Check(name));
+            if (_PyUnicode_EqualToASCIIId(name, &PyId___class__)) {
+                Py_ssize_t index = co->co_nlocals +
+                    PyTuple_GET_SIZE(co->co_cellvars) + i;
+                PyObject *cell = f->f_localsplus[index];
+                type = (PyTypeObject *) PyCell_GET(cell);
+                break;
+            }
+        }
+    }
+
+    if (obj == Py_None)
+        obj = NULL;
+    if (obj != NULL) {
+        // 这个函数是用于获取 obj 的 type
+        obj_type = supercheck(type, obj);
+        if (obj_type == NULL)
+            return -1;
+        Py_INCREF(obj);
+    }
+    return 0;
+}
+
+```
+
+在上面的代码执行完成之后就得到了一个 super 对象，之后在进行函数调用的时候就会将对应类的方法和对象 obj 绑定成一个方法对象返回，然后在进行方法调用的时候就能够成功调用了。
+
+```python
+class Demo:
+
+	def __init__(self):
+		print(super().__init__)
+
+
+if __name__ == '__main__':
+	Demo()
+```
+
+输出结果：
+
+```bash
+<method-wrapper '__init__' of Demo object at 0x100584070>
+```
+
+
 
 ## 总结
 
-`super`函数是Python中重要的功能之一，它允许我们方便地调用父类的方法和访问父类的属性。它的实现原理是根据当前类的MRO找到下一个要调用的方法。在CPython中，`super`函数的实现是通过查找对象的`__class__`属性来确定下一个要调用的方法。
+super 是 Python 面向对象编程当中非常重要的一部分内容，在本篇文章当中详细介绍了 super 内部的工作原理和 CPython 内部部分源代码分析了 super 的具体实现。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+
+![](https://img2023.cnblogs.com/blog/2519003/202305/2519003-20230515205927052-1345839185.png)
 
