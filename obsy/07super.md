@@ -1,6 +1,6 @@
 # 深入理解Python虚拟机：super超级魔法的背后原理
 
-在本篇文章中，我们将深入探讨Python中的`super`类的使用和原理。`super`类作为Python虚拟机中强大的功能之一，可以帮助我们更灵活地使用继承和多重继承。
+在本篇文章中，我们将深入探讨Python中的`super`类的使用和内部工作原理。`super`类作为Python虚拟机中强大的功能之一，可以帮助我们更灵活地使用继承和多重继承。
 
 ## super类的使用
 
@@ -46,9 +46,9 @@ I'm Alice and I'm 10 years old
 
 ### Super 设计的目的
 
-要理解`super`类的工作原理，我们需要了解Python中的多重继承和方法解析顺序（Method Resolution Order，MRO）。多继承是指一个类可以同时继承多个父类。在Python中，每个类都有一个内置属性`__mro__`，它记录了方法解析顺序。MRO是根据C3线性化算法生成的，它决定了在多重继承中调用方法的顺序。当对象进行方法调用的时候，就会从类的 mro 第一个类开始寻找，直到最后一个类位置，当第一次发现对应的类有相应的方法时就进行返回就调用这个类的这个方法。关于 C3 算法和 mro 的细节可以参考文章 [深入理解 python 虚拟机：多继承与 mro](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/obsy/04mro.md#深入理解-python-虚拟机多继承与-mro) 。
+要理解`super`类的工作原理，我们需要了解Python中的多重继承和方法解析顺序（Method Resolution Order，MRO）。多继承是指一个类可以同时继承多个父类。在Python中，每个类都有一个内置属性`__mro__`，它记录了方法解析顺序。MRO是根据C3线性化算法生成的，它决定了在多重继承中调用方法的顺序。当对象进行方法调用的时候，就会从类的 mro 当中的第一个类开始寻找，直到最后一个类为止，当第一次发现对应的类有相应的方法时就进行返回就调用这个类的这个方法。关于 C3 算法和 mro 的细节可以参考文章 [深入理解 python 虚拟机：多继承与 mro](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/obsy/04mro.md#深入理解-python-虚拟机多继承与-mro) 。
 
-Super 类的的签名为 *class* **super**(*type*, *object_or_type=None*)，这个类返回的是一个 super 对象，也是一个代理对象，当使用这个对象进行方法调用的时候，这个调用会转发给 *type* 父类或同级类。object_or_type 确定要搜索的方法解析顺序（也就是通过object_or_type得到具体的 mro），对于方法的搜索从 *type* 后面的类开始。
+Super 类的的签名为 *class* **super**(*type*, *object_or_type=None*)，这个类返回的是一个 super 对象，也是一个代理对象，当使用这个对象进行方法调用的时候，这个调用会转发给 *type* 父类或同级类。object_or_type 参数的作用是用于确定要搜索的方法解析顺序（也就是通过object_or_type得到具体的 mro），对于方法的搜索从 *type* 后面的类开始。
 
 例如，如果 的 object_or_type 的 mro 是 `D -> B -> C -> A -> object` 并且*type*的值是 `B` ，则进行方法搜索的顺序为`C -> A -> object` ，因为搜索是从 *type* 的下一个类开始的。
 
@@ -105,7 +105,7 @@ In method of A
 
 在上一小节当中我们在使用 super 进行测试的时候，都是给了 super 两个参数，但是需要注意的是我们在一个类的 `__init__`方法当中并没有给 super 任何参数，那么他是如何找到 super 需要的两个参数呢？
 
-这其中的魔法就是在 Super 类对象的初始化会获取当前栈帧的第一个参数对象，这个就是对应上面的 *object_or_type* 参数，*type* 就是局部变量表当中的一个参数 `__class__`：
+这其中的魔法就是在 Super 类对象的初始化会获取当前栈帧的第一个参数对象，这个就是对应上面的 *object_or_type* 参数，*type* 就是局部变量表当中的一个参数 `__class__`，我们可以通过查看类方法的局部变量去验证这一点：
 
 ```python
 import inspect
@@ -250,7 +250,7 @@ if __name__ == '__main__':
 
 ## 总结
 
-super 是 Python 面向对象编程当中非常重要的一部分内容，在本篇文章当中详细介绍了 super 内部的工作原理和 CPython 内部部分源代码分析了 super 的具体实现。
+super 是 Python 面向对象编程当中非常重要的一部分内容，在本篇文章当中详细介绍了 super 内部的工作原理和 CPython 内部部分源代码分析了 super 的具体实现。在 Python 当中 super 的使用方式分为两种一种是可以直接使用参数，另外一种是在类的方法当中不使用参数，后者的实现稍微复杂一点，他会从当前栈帧和局部变量表当中分别取出类对象和类，作为 super 的参数，从而实现 super 的功能。
 
 ---
 
