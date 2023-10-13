@@ -110,5 +110,64 @@ GIL 带来的最主要的问题就是当你的程序是计算密集型的时候�
 
 ## GIL 源代码分析
 
+在本小节当中为了更好的说明 GIL 的设计和源代码分析，本小节使用 CPython2.7.6 的 GIL 源代码进行分析，我还翻了一下更早的 CPython 源代码，都是使用这种方式实现的（这种实现方式在 Python 3.2 以后被优化改进了，在本文当中先不提及），我们现在来分析一下 GIL 具体是如何实现的：
+
+```c
+void 
+PyThread_release_lock(PyThread_type_lock lock)
+{
+	pthread_lock *thelock = (pthread_lock *)lock;
+	int status, error = 0;
+  // dprintf 都是打印提示消息的不需要关系
+	dprintf(("PyThread_release_lock(%p) called\n", lock));
+
+	status = pthread_mutex_lock( &thelock->mut );
+	CHECK_STATUS("pthread_mutex_lock[3]");
+
+	thelock->locked = 0;
+
+	status = pthread_mutex_unlock( &thelock->mut );
+	CHECK_STATUS("pthread_mutex_unlock[3]");
+
+	/* wake up someone (anyone, if any) waiting on the lock */
+	status = pthread_cond_signal( &thelock->lock_released );
+	CHECK_STATUS("pthread_cond_signal");
+}
+
+void 
+PyThread_release_lock(PyThread_type_lock lock)
+{
+	pthread_lock *thelock = (pthread_lock *)lock;
+	int status, error = 0;
+
+	dprintf(("PyThread_release_lock(%p) called\n", lock));
+
+	status = pthread_mutex_lock( &thelock->mut );
+	CHECK_STATUS("pthread_mutex_lock[3]");
+
+	thelock->locked = 0;
+
+	status = pthread_mutex_unlock( &thelock->mut );
+	CHECK_STATUS("pthread_mutex_unlock[3]");
+
+	/* wake up someone (anyone, if any) waiting on the lock */
+	status = pthread_cond_signal( &thelock->lock_released );
+	CHECK_STATUS("pthread_cond_signal");
+}
+```
+
+pthread_lock 的结构体如下所示：
+
+```c
+typedef struct {
+	char             locked; /* 0=unlocked, 1=locked */
+	/* a <cond, mutex> pair to handle an acquire of a locked lock */
+	pthread_cond_t   lock_released;
+	pthread_mutex_t  mut;
+} pthread_lock;
+```
+
+
+
 
 
