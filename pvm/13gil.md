@@ -1,6 +1,6 @@
 # 深入理解 python 虚拟机：GIL 源码分析——天使还是魔鬼？
 
-在目前的 CPython 当中一直有一个臭名昭著的问题就是 GIL (Global Interpreter Lock )，就是全局解释器锁，他限制了 Python 在多核架构当中的性能，在本篇文章当中我们将详细分析一下 GIL 的利弊和相关的实现源代码。
+在目前的 CPython 当中一直有一个臭名昭著的问题就是 GIL (Global Interpreter Lock )，就是全局解释器锁，他限制了 Python 在多核架构当中的性能，在本篇文章当中我们将详细分析一下 GIL 的利弊和 GIL 实现的 C 的源代码。
 
 
 
@@ -58,4 +58,33 @@ if __name__ == '__main__':
 ```
 
 在上面的字节码当中 `data.append(i)` 对应的字节码为 (14, 16, 18) 这三条字节码，而 (14, 16) 是不会产生数据竞争的问题的，因为他只是加载对象的方法和局部变量 `i` 的值，让 append 执行的方法是字节码 CALL_METHOD，而同一个时刻只能够有一个字节码在执行，因此这条字节码也是线程安全的，所以才会有上面的代码是线程安全的情况出现。
+
+我们再来看一个非线程安全的例子：
+
+```python
+import threading
+data = 0
+def add_data(n):
+	global data
+	for i in range(n):
+		data += 1
+
+if __name__ == '__main__':
+	ts = [threading.Thread(target=add_data, args=(100000,)) for _ in range(20)]
+	for t in ts:
+		t.start()
+	for t in ts:
+		t.join()
+	print(data)
+```
+
+在上面的代码当中对于 data += 1 这个操作就是非线程安全的，因为这行代码汇编编译成 3 条字节码：
+
+```bash
+  9          12 LOAD_GLOBAL              1 (data)
+             14 LOAD_CONST               1 (1)
+             16 INPLACE_ADD
+```
+
+首先 LOAD_GLOBAL，加载 data 数据，LOAD_CONST 加载常量 1，最后执行 INPLACE_ADD 进行加法操作，这就可能出现线程1执行完 LOAD_GLOBAL 之后，线程 2 连续执行 3 条字节码，那么这个时候 data 的值已经发生变化了，而线程 1 拿的还是旧的数据，因此最终执行的之后会出现线程不安全的情况。（实际上虚拟机在执行的过程当中，发生数据竞争比这个复杂很多，这里只是简单说明一下）
 
