@@ -113,6 +113,7 @@ GIL 带来的最主要的问题就是当你的程序是计算密集型的时候�
 在本小节当中为了更好的说明 GIL 的设计和源代码分析，本小节使用 CPython2.7.6 的 GIL 源代码进行分析，我还翻了一下更早的 CPython 源代码，都是使用这种方式实现的（这种实现方式在 Python 3.2 以后被优化改进了，在本文当中先不提及），我们现在来分析一下 GIL 具体是如何实现的，下面的代码是一 GIL 加锁和解锁的代码以及锁的数据结构表示：
 
 ```c
+// PyThread_type_lock 就是 void* 的 typedef
 void 
 PyThread_release_lock(PyThread_type_lock lock)
 {
@@ -187,7 +188,12 @@ typedef struct {
 } pthread_lock;
 ```
 
-熟悉 pthread 编程的话，上面的代码应该很轻易可以看懂
+熟悉 pthread 编程的话，上面的代码应该很轻易可以看懂，我们现在来分析一下这个数据结构：
+
+- locked，表示全局解释器锁 GIL 是否有线程获得锁，0 表示没有，1 则表示目前有线程获取到了这把锁。
+- lock_released，主要是用于线程的阻塞和唤醒的，如果当前有线程获取到全局解释器锁了，也就是 locked 的值等于 1，就将线程阻塞（执行pthread_cond_wait），当线程执行释放锁的代码 (PyThread_release_lock) 的时候就会将这个被阻塞的线程唤醒（执行 pthread_cond_signal ）。
+
+- mut，这个主要是进行临界区保护的，因为对于 locked 这个变量的访问是线程不安全的，因此需要用锁进行保护。
 
 
 
