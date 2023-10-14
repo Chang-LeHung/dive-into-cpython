@@ -435,7 +435,7 @@ False
 
 ## 总结
 
-在本篇文章当中主要给大家介绍了在 cpython 内部对于 bytes 的实现，重点介绍了 cpython 当中 PyBytesObject 的内存布局和创建 PyBytesObject 的函数，以及对于 bytes 对象的拼接细节和 cpython 内部单字节字符的缓冲池。在程序当中最好使用 join 操作进行 btyes 的拼接操作，否则效率会比较低。
+在本篇文章当中主要给大家介绍了在 cpython 内部对于 bytes 的实现，重点介绍了 cpython 当中 PyBytesObject 的内存布局和创建 PyBytesObject 的函数，以及对于 bytes 对象的拼接细节和 cpython 内部单字节字符的缓冲池。在程序当中最好使用 join 操作进行 bytes 的拼接操作，否则效率会比较低。
 
 ---
 

@@ -241,7 +241,7 @@ python 官方的调试器为 pdb 这个是 python 标准库自带的，我们可
             print("In return")
             return self.dispatch_return(frame, arg)
         if event == 'exception':
-            print("In execption")
+            print("In exception")
             return self.dispatch_exception(frame, arg)
         if event == 'c_call':
             print("In c_call")

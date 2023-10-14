@@ -425,14 +425,14 @@ pmerge(PyObject *acc, PyObject **to_merge, Py_ssize_t to_merge_size)
         */
         // 得到候选的类
         candidate = PyTuple_GET_ITEM(cur_tuple, remain[i]);
-        // 查看各个基类的 mro 序列的尾部当中是否包含 condidate 尾部就是除去剩下的 mro 序列当中的第一个 剩下的类就是尾部当中含有的类 tail_contains 就是检查尾部当中是否包含 condidate
+        // 查看各个基类的 mro 序列的尾部当中是否包含 candidate 尾部就是除去剩下的 mro 序列当中的第一个 剩下的类就是尾部当中含有的类 tail_contains 就是检查尾部当中是否包含 candidate
         for (j = 0; j < to_merge_size; j++) {
             PyObject *j_lst = to_merge[j];
             if (tail_contains(j_lst, remain[j], candidate))
-                // 如果尾部当中包含 condidate 则说明当前的 candidate 不符合要求需要查看下一个 mro 序列的第一个类 看看是否符合要求 如果还不符合就需要找下一个 再进行重复操作
+                // 如果尾部当中包含 candidate 则说明当前的 candidate 不符合要求需要查看下一个 mro 序列的第一个类 看看是否符合要求 如果还不符合就需要找下一个 再进行重复操作
                 goto skip; /* continue outer loop */
         }
-        // 找到了则将 condidate 加入的返回的结果当中
+        // 找到了则将 candidate 加入的返回的结果当中
         res = PyList_Append(acc, candidate);
         if (res < 0)
             goto out;

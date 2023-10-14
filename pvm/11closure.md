@@ -99,7 +99,7 @@ if __name__ == '__main__':
 	print(outer_function.__code__.co_cellvars)  # （'x', ）
 ```
 
-cellvars 表示在其他函数当中会使用本地定义的变量，freevars 表示本地会使用其他函数定义的变量。在上面的例子当中，outer_function 当中的变量 x 会被 inner_function 使用，而cellvars 表示在其他函数当中会使用本地定义的变量，所以 outer_function 的这个字段为 （'x', ）。如果要了解详细的信息可以参考这篇文章 [深入理解 python 虚拟机：字节码灵魂——Code obejct](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/02codeobject.md#深入理解-python-虚拟机字节码灵魂code-obejct) 。
+cellvars 表示在其他函数当中会使用本地定义的变量，freevars 表示本地会使用其他函数定义的变量。在上面的例子当中，outer_function 当中的变量 x 会被 inner_function 使用，而cellvars 表示在其他函数当中会使用本地定义的变量，所以 outer_function 的这个字段为 （'x', ）。如果要了解详细的信息可以参考这篇文章 [深入理解 python 虚拟机：字节码灵魂——Code object](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/02codeobject.md#深入理解-python-虚拟机字节码灵魂code-object) 。
 
 >上面的内容我们简要回顾了一下 CodeObject 当中的两个非常重要的字段，这两个字段在进行传递参数的时候非常重要，当我们在进行函数调用的时候，虚拟机会新建一个栈帧，在进行新建栈帧的过程当中，如果发现 co_cellvars 存储的字符串变量也是函数参数的时候，除了会在局部变量当中保存一份参数之外，还会将传递过来的参数保存到栈帧对象的其他位置当中（这里需要注意一下，CodeObject 当中的 co_freevars 保存的是字符串，也就是变量名，栈帧当中保存的是变量名字对应的真实对象，也就是函数参数），这么做的目的是为了方面后面字节码 LOAD_CLOSURE 的操作，因为实际虚拟机存储的是指向对象的指针，因此浪费不了多少空间。
 >
@@ -162,7 +162,7 @@ Disassembly of <code object inner_function at 0x100757a80, file "closure_bytecod
 
 我们再来看一下函数 inner_function 的字节码
 
-- LOAD_DEREF：这个字节码会从栈帧的 freevars 数组当中加载下标为 oparg 的对象，freevars 就是刚刚在创建函数的时候所保存的，也就是 outter_function 传递给 inner_function 的元祖。直观的来说就是将外部函数的 x 加载到 valuestack 当中。
+- LOAD_DEREF：这个字节码会从栈帧的 freevars 数组当中加载下标为 oparg 的对象，freevars 就是刚刚在创建函数的时候所保存的，也就是 outer_function 传递给 inner_function 的元祖。直观的来说就是将外部函数的 x 加载到 valuestack 当中。
 - STORE_DEREF：就是将栈顶的元素弹出，保存到 cellvars 数组对应的下标 (oparg) 当中。
 
 后续的字节码就很简单了，这里不做详细分析了。
