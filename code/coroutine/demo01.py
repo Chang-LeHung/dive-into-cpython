@@ -4,8 +4,8 @@ async def hello():
 
 if __name__ == '__main__':
 	coroutine = hello()
-	# print(coroutine)
-	# try:
-	# 	coroutine.send(None)
-	# except StopIteration:
-	# 	print("coroutine finished")
+	print(coroutine)
+	try:
+		coroutine.send(None)
+	except StopIteration:
+		print("coroutine finished")
