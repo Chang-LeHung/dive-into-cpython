@@ -199,7 +199,54 @@ typedef struct {
 
 - mut，这个主要是进行临界区保护的，因为对于 locked 这个变量的访问是线程不安全的，因此需要用锁进行保护。
 
+在上面的代码当中我们详细介绍了 GIL 的实现源代码，但是还没有介绍虚拟机是如何使用它的。虚拟机在使用 GIL 的时候会有一个问题，那就是如果多个线程同时在虚拟机当中跑的时候，一个线程获取到锁了之后如果一直执行的话，那么其他线程不久饥饿了吗？因此虚拟机需要有一种机制保证当有多个线程同时获取锁的时候不会让线程饥饿。
 
+在 CPython 当中为了不让线程饥饿有一个机制，就是虚拟机会有一个 _Py_Ticker 记录当前线程执行的字节码的个数，让执行的字节码个数超过 _Py_CheckInterval (虚拟机这只这个值为 100) 的时候就会释放锁，然后重新获取锁，在这释放和获取之间就能够让其他线程有机会获得锁从而进行字节码的执行过程。相关的源代码如下所示：
+
+```c
+if (--_Py_Ticker < 0) { // 每执行完一个字节码就进行 -- 操作，这个值初始化为 _Py_CheckInterval
+    if (*next_instr == SETUP_FINALLY) {
+        /* Make the last opcode before
+           a try: finally: block uninterruptible. */
+        goto fast_next_opcode;
+    }
+    _Py_Ticker = _Py_CheckInterval; // 重新将这个值设置成 100
+    tstate->tick_counter++;
+#ifdef WITH_TSC
+    ticked = 1;
+#endif
+    // 这个主要是处理异常信号的 不用管
+    if (pendingcalls_to_do) {
+        if (Py_MakePendingCalls() < 0) {
+            why = WHY_EXCEPTION;
+            goto on_error;
+        }
+        if (pendingcalls_to_do)
+            /* MakePendingCalls() didn't succeed.
+               Force early re-execution of this
+               "periodic" code, possibly after
+               a thread switch */
+            _Py_Ticker = 0;
+    }
+#ifdef WITH_THREAD
+    // 如果有 GIL 存在
+    if (interpreter_lock) {
+        /* Give another thread a chance */
+
+        if (PyThreadState_Swap(NULL) != tstate)
+            Py_FatalError("ceval: tstate mix-up");
+        PyThread_release_lock(interpreter_lock); // 首先释放锁
+        /* 其他线程的代码在这就能够运行了 */
+        /* Other threads may run now */
+        // 然后获取锁
+        PyThread_acquire_lock(interpreter_lock, 1);
+        if (PyThreadState_Swap(tstate) != NULL)
+            Py_FatalError("ceval: orphan tstate");
+    }
+#endif
+}
+
+```
 
 
 
