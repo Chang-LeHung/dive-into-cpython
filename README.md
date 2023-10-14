@@ -2,7 +2,6 @@
 
 ![02logo](logo.png)
 
-
 ## CPython 虚拟机中常用数据结构实现（objects）
 
 - [深入理解 Python 虚拟机：列表（list）的实现原理及源码剖析](objects/01list.md)
@@ -34,6 +33,7 @@
 - [深入理解 Python 虚拟机：生成器停止背后的魔法](pvm/10generator.md)
 - [深入理解 Python 虚拟机：原来虚拟机是这么实现闭包的](pvm/11closure.md)
 - [深入理解 python 虚拟机：GIL 源码分析——天使还是魔鬼？](pvm/13gil.md)
+- [深入理解 Python 虚拟机：协程初探——不过是生成器而已](pvm/14coroutine.md)
 
 ## 对象系统
 
