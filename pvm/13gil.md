@@ -2,8 +2,6 @@
 
 在目前的 CPython 当中一直有一个臭名昭著的问题就是 GIL (Global Interpreter Lock )，就是全局解释器锁，他限制了 Python 在多核架构当中的性能，在本篇文章当中我们将详细分析一下 GIL 的利弊和 GIL 实现的 C 的源代码。
 
-
-
 ## 选择 GIL 的原因
 
 ### GIL 对 Python 代码的影响
@@ -94,7 +92,7 @@ if __name__ == '__main__':
 
 除了上面 GIL 对于 Python 代码层面的影响，GIL 对于虚拟机来说还有一个非常好的作用就是他不会让虚拟机产生死锁的现象，因为整个虚拟机只有一把锁🔒。
 
-GIL 最大的影响是对于虚拟机，对于虚拟机的内存管理和垃圾回收来说，GIL 可以说极大的简化了 CPython 内部的内存管理和垃圾回收的实现。我们现在举一个内存管理和垃圾回收的多线程情况会出现数据竞争的场景：
+对于虚拟机的内存管理和垃圾回收来说，GIL 可以说极大的简化了 CPython 内部的内存管理和垃圾回收的实现。我们现在举一个内存管理和垃圾回收的多线程情况会出现数据竞争的场景：
 
 在 Python 当中的垃圾回收是采用引用计数的方式进行处理，如果没有 GIL 那么就会存在多个线程同时对一个 CPython 对象的引用计数进行增加，而现在因为 GIL 的存在也就不需要进行考虑这个问题了。
 
@@ -247,6 +245,61 @@ if (--_Py_Ticker < 0) { // 每执行完一个字节码就进行 -- 操作，这�
 }
 
 ```
+
+
+
+## GIL 的挣扎
+
+在上面的内容当中我们详细讲述了 GIL 的原理，我们可以很明显的发现其中的问题，就是一个时刻只有一个线程在运行，限制了整个虚拟机的性能，但是整个虚拟机还有一个地方可以极大的提高整个虚拟机的性能，就是在进行 IO 操作的时候首先释放 GIL，然后在 IO 操作完成之后重新获取 GIL，这个 IO 操作是广义上的 IO 操作，也包括网络相关的 API，只要和设备进行交互就可以释放 GIL，然后操作执行完成之后重新获取 GIL。
+
+在虚拟机的自带的标准库模块当中，就有很多地方使用了这种方法，比如文件的读写和关闭，我们以文件关闭为例看一下 CPython 是如何操作的：
+
+```c
+static int
+internal_close(fileio *self)
+{
+    int err = 0;
+    int save_errno = 0;
+    if (self->fd >= 0) {
+        int fd = self->fd;
+        self->fd = -1;
+        /* fd is accessible and someone else may have closed it */
+        if (_PyVerify_fd(fd)) {
+            // 释放全局解释器锁 这是一个宏 会调用前面的释放锁的函数
+            Py_BEGIN_ALLOW_THREADS
+            err = close(fd);
+            if (err < 0)
+                save_errno = errno;
+            // 重新获取全局解释器锁 也是一个宏 会调用前面的获取锁的函数
+            Py_END_ALLOW_THREADS
+        } else {
+            save_errno = errno;
+            err = -1;
+        }
+    }
+    if (err < 0) {
+        errno = save_errno;
+        PyErr_SetFromErrno(PyExc_IOError);
+        return -1;
+    }
+    return 0;
+}
+```
+
+这就会使得 Python 虽然有 GIL ，但是在 IO 密集型的程序上还是能打的，比如在网络数据采集等领域， Python 还是有很大的比重。
+
+## 总结
+
+在本篇文章当中详细介绍了 CPython 选择 GIL 的原因，以及 GIL 对于 Python 程序和虚拟机的影响，最后详细分析了一个早起版本的 GIL 源代码实现。GIL 可以很大程度上简化虚拟机的设计与实现，因为有一把全局锁，整个虚拟机的开发就会变得更加简单，这种简单对于大型项目来说是非常重要的。同时这对 CPython 第三方库的开发者来说也是福音。最后讨论了 CPython 当中 GIL 的实现和使用方式以及 CPython 使用 ticker 来保证线程不会饥饿的问题。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+![](../qrcode2.jpg)
 
 
 
