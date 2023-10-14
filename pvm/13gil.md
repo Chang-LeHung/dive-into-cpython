@@ -121,20 +121,21 @@ PyThread_release_lock(PyThread_type_lock lock)
 	int status, error = 0;
   // dprintf 一个宏定义 都是打印消息的，不需要关心，而且默认是不打印
 	dprintf(("PyThread_release_lock(%p) called\n", lock));
-
+  // 上锁
 	status = pthread_mutex_lock( &thelock->mut );
 	CHECK_STATUS("pthread_mutex_lock[3]");
-
+  // 释放全局解释器锁
 	thelock->locked = 0;
-
+  // 解锁
 	status = pthread_mutex_unlock( &thelock->mut );
 	CHECK_STATUS("pthread_mutex_unlock[3]");
-
+  // 因为释放了全局解释器锁，现在需要唤醒一个被阻塞的线程
 	/* wake up someone (anyone, if any) waiting on the lock */
 	status = pthread_cond_signal( &thelock->lock_released );
 	CHECK_STATUS("pthread_cond_signal");
 }
 
+// waitflag 表示如果没有获取锁是否需要等待，如果不为 0 就表示没获取锁就等待，即线程被挂起
 int 
 PyThread_acquire_lock(PyThread_type_lock lock, int waitflag)
 {
@@ -147,6 +148,7 @@ PyThread_acquire_lock(PyThread_type_lock lock, int waitflag)
 	status = pthread_mutex_lock( &thelock->mut );
 	CHECK_STATUS("pthread_mutex_lock[1]");
 	success = thelock->locked == 0;
+  // 如果没有上锁，则获取锁成功，并且上锁
 	if (success) thelock->locked = 1;
 	status = pthread_mutex_unlock( &thelock->mut );
 	CHECK_STATUS("pthread_mutex_unlock[1]");
@@ -158,11 +160,13 @@ PyThread_acquire_lock(PyThread_type_lock lock, int waitflag)
 		 * protocol */
 		status = pthread_mutex_lock( &thelock->mut );
 		CHECK_STATUS("pthread_mutex_lock[2]");
+    // 如果现在已经有线程获取到锁了，就将当前线程挂起
 		while ( thelock->locked ) {
 			status = pthread_cond_wait(&thelock->lock_released,
 						   &thelock->mut);
 			CHECK_STATUS("pthread_cond_wait");
 		}
+    // 当线程被唤醒之后，就说明线程只有当前线程在运行可以直接获取锁
 		thelock->locked = 1;
 		status = pthread_mutex_unlock( &thelock->mut );
 		CHECK_STATUS("pthread_mutex_unlock[2]");
