@@ -2,7 +2,6 @@
 
 ![02logo](logo.png)
 
-[网站阅读](https://chang-lehung.github.io/dive-into-cpython/)
 
 ## Cpython 虚拟机中常用数据结构实现（objects）
 

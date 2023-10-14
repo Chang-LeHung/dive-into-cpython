@@ -118,7 +118,7 @@ PyThread_release_lock(PyThread_type_lock lock)
 {
 	pthread_lock *thelock = (pthread_lock *)lock;
 	int status, error = 0;
-  // dprintf 都是打印提示消息的不需要关系
+  // dprintf 都是打印消息的，不需要关心
 	dprintf(("PyThread_release_lock(%p) called\n", lock));
 
 	status = pthread_mutex_lock( &thelock->mut );
@@ -158,6 +158,8 @@ PyThread_release_lock(PyThread_type_lock lock)
 
 pthread_lock 的结构体如下所示：
 
+其中锁的结构体如下所示：
+
 ```c
 typedef struct {
 	char             locked; /* 0=unlocked, 1=locked */
@@ -166,6 +168,8 @@ typedef struct {
 	pthread_mutex_t  mut;
 } pthread_lock;
 ```
+
+
 
 
 
