@@ -3,19 +3,18 @@ import datetime
 import time
 
 
-async def sleep(t):
-	time.sleep(t)
-
-
 async def hello():
 	print("start a coroutine", datetime.datetime.now())
-	await sleep(3)
+	yield 3
 	print("wait for 3s", datetime.datetime.now())
 
 
 if __name__ == '__main__':
 	coroutine = hello()
-	try:
-		coroutine.send(None)
-	except StopIteration:
-		print("coroutine finished")
+	import inspect
+
+	print(inspect.isasyncgen(coroutine))
+	print(inspect.isawaitable(coroutine))
+	print(coroutine.ag_code.co_flags & 0x0100)
+	print(coroutine.ag_code.co_flags & 0x0200)
+	coroutine.aclose()
