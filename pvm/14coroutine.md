@@ -141,7 +141,56 @@ e.value = 'foo'
              28 RETURN_VALUE
 ```
 
-在上面的代码当中和 await 语句相关的字节码有两条，分别是 GET_AWAITABLE 和 YIELD_FROM，在函数 foo 当中首先会调用函数 bar 得到一个协程对象，得到的这个协程对象会放到虚拟机的栈顶，然后执行 GET_AWAITABLE 这条字节码来说对于协程来说相当于没执行。他具体的操作为弹出栈顶元素，如果栈顶元素是一个协程对象，则直接将这个协程对象再压回站定，如果不是则调用对象的 `__await__` 方法，将这个方法的返回值压入栈顶。
+在上面的代码当中和 await 语句相关的字节码有两条，分别是 GET_AWAITABLE 和 YIELD_FROM，在函数 foo 当中首先会调用函数 bar 得到一个协程对象，得到的这个协程对象会放到虚拟机的栈顶，然后执行 GET_AWAITABLE 这条字节码来说对于协程来说相当于没执行。他具体的操作为弹出栈顶元素，如果栈顶元素是一个协程对象，则直接将这个协程对象再压回栈顶，如果不是则调用对象的 `__await__` 方法，将这个方法的返回值压入栈顶。
 
-然后需要运行的字节码就是 YIELD_FROM，这个字节码和 "yield from" 语句对应的字节码是一样的，这就是为什么说协程就是生成器（准确的来说还是有点不够准确，因为协程只是通过生成器的机制来完成，具体的实现需要编译器虚拟机和标准库协同工作，才能够很好的完成协程程序）。
+然后需要运行的字节码就是 YIELD_FROM，这个字节码和 "yield from" 语句对应的字节码是一样的，这就是为什么说协程就是生成器（准确的来说还是有点不够准确，因为协程只是通过生成器的机制来完成，具体的实现需要编译器、虚拟机和标准库协同工作，才能够很好的完成协程程序）。如果你不了解 YIELD_FROM 的工作原理，可以参考这篇文章：[深入理解 Python 虚拟机：生成器停止背后的魔法](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/10generator.md)。
+
+我们在使用生成器的方式来重写上面的程序：
+
+```python
+def bar():
+	yield # 这条语句的主要作用是将函数编程生成器
+	return "bar"
+
+
+def foo():
+	name = yield from bar()
+	print(f"{name = }")
+	return "foo"
+
+
+if __name__ == '__main__':
+	generator = foo()
+	try:
+		generator.send(None) # 运行到第一条 yield 语句
+		generator.send(None) # 从 yield 语句运行完成
+	except StopIteration as e:
+		print(f"{e.value = }")
+```
+
+我们再来看一下 foo 函数的字节码：
+
+```bash
+  7           0 LOAD_GLOBAL              0 (bar)
+              2 CALL_FUNCTION            0
+              4 GET_YIELD_FROM_ITER
+              6 LOAD_CONST               0 (None)
+              8 YIELD_FROM
+             10 STORE_FAST               0 (name)
+
+  8          12 LOAD_GLOBAL              1 (print)
+             14 LOAD_CONST               1 ('name = ')
+             16 LOAD_FAST                0 (name)
+             18 FORMAT_VALUE             2 (repr)
+             20 BUILD_STRING             2
+             22 CALL_FUNCTION            1
+             24 POP_TOP
+
+  9          26 LOAD_CONST               2 ('foo')
+             28 RETURN_VALUE
+```
+
+字节码 GET_YIELD_FROM_ITER 就是从一个对象当中获取一个生成器。这个字节码会弹出栈顶对象，如果对象是一个生成器则直接返回，并且将它再压入栈顶，如果不是则调用对象的 `__iter__` 方法，将这个返回对象压入栈顶。后续执行 YIELD_FROM 方法，就和前面的协程一样了。
+
+## 总结
 
