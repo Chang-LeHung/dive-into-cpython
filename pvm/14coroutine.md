@@ -89,12 +89,55 @@ if __name__ == '__main__':
 coroutine finished
 ```
 
-在上面的代码当中首先调用 hello 之后返回一个协程对象，协程对象和生成器对象一样都有 send 方法，而且作用也一样都是让协程开始执行，然后写成直接执行完成。和生成器一样当一个生成器执行完成之后会产生 StopIteration 异常，因此需要对异常进行 try catch 处理。
+在上面的代码当中首先调用 hello 之后返回一个协程对象，协程对象和生成器对象一样都有 send 方法，而且作用也一样都是让协程开始执行，然后写成直接执行完成。和生成器一样当一个生成器执行完成之后会产生 StopIteration 异常，因此需要对异常进行 try catch 处理。和协程还有一个相关的异常为 StopAsyncIteration，这一点我们后面在详细说。
 
-当然你也可以使用 yield 语句让协程的执行停下来：
+我们再来写一个稍微复杂一点例子：
 
 ```python
+async def bar():
+	return "bar"
+
+
+async def foo():
+	name = await bar()
+	print(f"{name = }")
+	return "foo"
+
+
+if __name__ == '__main__':
+	coroutine = foo()
+	try:
+		coroutine.send(None)
+	except StopIteration as e:
+		print(f"{e.value = }")
 ```
 
+上面的程序的输出结果如下所示：
 
+```python
+name = 'bar'
+e.value = 'foo'
+```
+
+上面两个协程都正确的执行完了代码，我们现在来看一下协程程序的字节码是怎么样的，上面的 foo 函数对应的字节码如下所示：
+
+```bash
+  9           0 LOAD_GLOBAL              0 (bar)
+              2 CALL_FUNCTION            0
+              4 GET_AWAITABLE
+              6 LOAD_CONST               0 (None)
+              8 YIELD_FROM
+             10 STORE_FAST               0 (name)
+
+ 10          12 LOAD_GLOBAL              1 (print)
+             14 LOAD_CONST               1 ('name = ')
+             16 LOAD_FAST                0 (name)
+             18 FORMAT_VALUE             2 (repr)
+             20 BUILD_STRING             2
+             22 CALL_FUNCTION            1
+             24 POP_TOP
+
+ 11          26 LOAD_CONST               2 ('foo')
+             28 RETURN_VALUE
+```
 
