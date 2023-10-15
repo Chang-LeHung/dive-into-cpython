@@ -194,3 +194,16 @@ if __name__ == '__main__':
 
 ## 总结
 
+在本篇文章当中简单的介绍了一下协程是什么以及在 CPython 当中协程是通过什么方式实现的，从字节码的角度来看， 生成器和协程本质上使用的字节码是一样的，都是使用 YIELD_FROM 字节码实现的，协程就是在生成器的基础之上实现的。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+![](../qrcode2.jpg)
+
+
+
