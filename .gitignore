@@ -21,3 +21,4 @@ main.pdf
 node_modules
 .temp
 .cache
+.mypy_cache
