@@ -182,8 +182,8 @@ PyThread_start_new_thread(void (*func)(void *), void *arg)
                              &attrs,
                              (void* (*)(void *))func,
                              (void *)arg
-                             );
-
+                             ); // 创建新线程执行函数 func，也就是传递过来的函数 t_bootstrap（函数内容见下方）
+    // 在执行完上面的代码之后线程就会立即执行了不需要像 Python 当中的线程一样需要调用 start
     pthread_attr_destroy(&attrs);
     if (status != 0)
         return -1;
@@ -205,6 +205,9 @@ t_bootstrap(void *boot_raw)
     _PyThreadState_Init(tstate);
     PyEval_AcquireThread(tstate);
     nb_threads++;
+    // boot->func 就是从 Python 层面传递过来的 _bootstrap 
+    // PyEval_CallObjectWithKeywords 就是调用 Python 层面的函数
+    // 下面这行代码就是在创建线程后执行的 Python 代码
     res = PyEval_CallObjectWithKeywords(
         boot->func, boot->args, boot->keyw);
     if (res == NULL) {
