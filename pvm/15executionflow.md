@@ -10,7 +10,9 @@
 
 ![92mml](../images/92mml.png)
 
-这里我们不过多的去分析这一点，现在就需要知道在一个进程当中主要有这 4 个东西，而且在内核当中会有数据结构去保存他们。程序被操作系统加载之后可以被操作系统放到 CPU 上运行。我们可以同时启动多个进程，让操作系统去调度，而且随着体系结构的发展，现在的机器上都是多核机器，同时启动多个进程可以让他们同时执行，但是我们会有一个需求，我们希望并行的去执行程序，而且他们可以修改共有的内存，当一个进程修改之后能够被另外一个进程看到，从这个角度来说他们就需要有同一个地址空间，这样就可以实现这一点了，而且这种方式有一个好处就是节省内存资源，比如只需要保存一份内存的地址空间了。
+这里我们不过多的去分析这一点，现在就需要知道在一个进程当中主要有这 4 个东西，而且在内核当中会有数据结构去保存他们。程序被操作系统加载之后可以被操作系统放到 CPU 上运行。我们可以同时启动多个进程，让操作系统去调度，而且随着体系结构的发展，现在的机器上都是多核机器，同时启动多个进程可以让他们同时执行。
+
+在具体的编程时我们会有一个需求，我们希望并行的去执行程序，而且他们可以修改共有的内存，当一个进程修改之后能够被另外一个进程看到，从这个角度来说他们就需要有同一个地址空间，这样就可以实现这一点了，而且这种方式有一个好处就是节省内存资源，比如只需要保存一份内存的地址空间了。
 
 上面谈到的实现进程的方式实际上被称作轻量级进程，也被叫做线程。具体来说就是可以在一个进程内部启动多个线程，这些线程之前有这相同的内存地址空间，这些线程能够同时被操作系统调度到不同的核心上同时执行。我们现在在 linux 上使用的线程是NPTL (Native POSIX Threads Library)，从 glibc2.3.2 开始支持，而且要求 linux 2.6 之后的特性。在前面的内容我们谈到了，在同一个进程内部的线程是可以共享一些进程拥有的数据的，比如：
 
@@ -22,14 +24,14 @@
 -   当前工作目录。
 -   虚拟地址空间。
 
-在 linux 当中创建线程和进程的系统调用分别为 clone 和 fork，如果为了创建线程的话我们可以不使用这么低层级的 API，我们可以通过 NPTL 提供的 `pthread_create` 方法创建线程执行相应的方法。
+在 linux 当中创建线程和进程的系统调用分别为 `clone` 和 `fork`，如果为了创建线程的话我们可以不使用这么低层级的 API，我们可以通过 NPTL 提供的 `pthread_create` 方法创建线程执行相应的方法。
 
 ```c
 #include <stdio.h>
 #include <pthread.h>
 
 void* func(void* arg) {
-  printf("Hello World from tid = %ld\n", pthread_self()); // pthread_self 返回当前调用这个函数的线程的线程 id
+  printf("Hello World\n");
   return NULL;
 }
 
@@ -65,6 +67,183 @@ int pthread_create(pthread_t *thread, const pthread_attr_t *attr,
 
 -   参数 thread 是一个类型为 pthread_t 的指针对象，将这个对象会在 pthread_create 内部会被赋值为存放线程 id 的地址，在后文当中我们将使用一个例子仔细的介绍这个参数的含义。
 -   参数 attr 是一个类型为 pthread_attr_t 的指针对象，我们可以在这个对象当中设置线程的各种属性，比如说线程取消的状态和类别，线程使用的栈的大小以及栈的初始位置等等，在后文当中我们将详细介绍这个属性的使用方法，当这个属性为 NULL 的时候，使用默认的属性值。
--   参数 start_routine 是一个返回类型为 void *参数类型为 void* 的函数指针，指向线程需要执行的函数，线程执行完成这个函数之后线程就会退出。
+-   参数 start_routine 是一个返回类型为 void，参数类型为 void 的函数指针，指向线程需要执行的函数，线程执行完成这个函数之后线程就会退出。
 -   参数 arg ，传递给函数 start_routine 的一个参数，在上一条当中我们提到了 start_routine 有一个参数，是一个 void 类型的指针，这个参数也是一个 void 类型的指针，在后文当中我们使用一个例子说明这个参数的使用方法。
 
+在 Python 当中可以通过 threading 来创建一个线程：
+
+```python
+import threading
+
+def func():
+	print("Hello World")
+
+
+if __name__ == '__main__':
+	t = threading.Thread(target=func)
+	t.start()
+	t.join()
+```
+
+现在有一个问题是，在 Python 当中真的是使用 pthread_create 来创建线程的吗？Python 当中的线程和我们常说的线程是一致的吗？
+
+我们现在来分析一下 threading 的源代码，线程的 start （也就是 Thread 类的方法）方法如下：
+
+```python
+    def start(self):
+        if not self._initialized:
+            raise RuntimeError("thread.__init__() not called")
+
+        if self._started.is_set():
+            raise RuntimeError("threads can only be started once")
+
+        with _active_limbo_lock:
+            _limbo[self] = self
+        try:
+            _start_new_thread(self._bootstrap, ())
+        except Exception:
+            with _active_limbo_lock:
+                del _limbo[self]
+            raise
+        self._started.wait()
+ 
+    def run(self):
+        try:
+            if self._target is not None:
+                self._target(*self._args, **self._kwargs)
+        finally:
+            # Avoid a refcycle if the thread is running a function with
+            # an argument that has a member that points to the thread.
+            del self._target, self._args, self._kwargs
+
+    def _bootstrap(self):
+        try:
+            self._bootstrap_inner()
+        except:
+            if self._daemonic and _sys is None:
+                return
+            raise
+
+    def _bootstrap_inner(self):
+        try:
+            self._set_ident()
+            self._set_tstate_lock()
+            if _HAVE_THREAD_NATIVE_ID:
+                self._set_native_id()
+            self._started.set()
+            with _active_limbo_lock:
+                _active[self._ident] = self
+                del _limbo[self]
+
+            if _trace_hook:
+                _sys.settrace(_trace_hook)
+            if _profile_hook:
+                _sys.setprofile(_profile_hook)
+
+            try:
+                self.run()
+            except:
+                self._invoke_excepthook(self)
+        finally:
+            self._delete()
+```
+
+在上面的代码当中最核心的一行代码就是 `_start_new_thread(self._bootstrap, ())`，这行代码的含义是启动一个新的线程去执行 `self._bootstrap` ，在 `self._bootstrap` 当中会调用 `_bootstrap_inner`，在 `_bootstrap_inner` 当中会调用 Thread 的 run 方法，而在这个方法当中最终调用了我们传递给 Thread 类的函数。
+
+现在的问题是 _start_new_thread 是如何实现的？这个方法是 CPython 内部使用 C 语言实现的方法，在这里我们不再将全部的细节进行分析，只讨论大致的流程。
+
+在执行 _start_new_thread 时，最终会调用`PyThread_start_new_thread` 这个方法，第一个参数是一个函数，这个函数为 `t_bootstrap`，在`PyThread_start_new_thread` 当中会使用 `pthread_create` 创建一个新的线程执行 `t_bootstrap` 函数，在函数 `t_bootstrap` 当中会调用从 Python 层面当中传递过来的 `_bootstrap` 方法。
+
+```c
+long
+PyThread_start_new_thread(void (*func)(void *), void *arg)
+{
+    pthread_t th;
+    int status;
+    pthread_attr_t attrs;
+    size_t      tss;
+
+    if (!initialized)
+        PyThread_init_thread();
+
+    if (pthread_attr_init(&attrs) != 0)
+        return -1;
+    tss = (_pythread_stacksize != 0) ? _pythread_stacksize
+                                     : THREAD_STACK_SIZE;
+    if (tss != 0) {
+        if (pthread_attr_setstacksize(&attrs, tss) != 0) {
+            pthread_attr_destroy(&attrs);
+            return -1;
+        }
+    }
+    pthread_attr_setscope(&attrs, PTHREAD_SCOPE_SYSTEM);
+
+    status = pthread_create(&th,
+                             &attrs,
+                             (void* (*)(void *))func,
+                             (void *)arg
+                             );
+
+    pthread_attr_destroy(&attrs);
+    if (status != 0)
+        return -1;
+
+    pthread_detach(th);
+
+    return (long) th;
+}
+
+static void
+t_bootstrap(void *boot_raw)
+{
+    struct bootstate *boot = (struct bootstate *) boot_raw;
+    PyThreadState *tstate;
+    PyObject *res;
+
+    tstate = boot->tstate;
+    tstate->thread_id = PyThread_get_thread_ident();
+    _PyThreadState_Init(tstate);
+    PyEval_AcquireThread(tstate);
+    nb_threads++;
+    res = PyEval_CallObjectWithKeywords(
+        boot->func, boot->args, boot->keyw);
+    if (res == NULL) {
+        if (PyErr_ExceptionMatches(PyExc_SystemExit))
+            PyErr_Clear();
+        else {
+            PyObject *file;
+            PySys_WriteStderr(
+                "Unhandled exception in thread started by ");
+            file = PySys_GetObject("stderr");
+            if (file != NULL && file != Py_None)
+                PyFile_WriteObject(boot->func, file, 0);
+            else
+                PyObject_Print(boot->func, stderr, 0);
+            PySys_WriteStderr("\n");
+            PyErr_PrintEx(0);
+        }
+    }
+    else
+        Py_DECREF(res);
+    Py_DECREF(boot->func);
+    Py_DECREF(boot->args);
+    Py_XDECREF(boot->keyw);
+    PyMem_DEL(boot_raw);
+    nb_threads--;
+    PyThreadState_Clear(tstate);
+    PyThreadState_DeleteCurrent();
+    PyThread_exit_thread();
+}
+```
+
+
+
+
+
+
+
+## 协程
+
+Coroutines are computer program components that allow execution to be suspended and resumed, generalizing subroutines for cooperative multitasking.
+
+根据 wiki 的描述，协程是一个允许停下来和恢复执行的程序，
