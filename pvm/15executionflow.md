@@ -1,6 +1,6 @@
 # 深入理解 Python 虚拟机：进程、线程和协程
 
-在本篇文章当中深入分析在 Python 当中 进程、线程和协程的区别，这三个概念会让人非常迷惑。如果没有深入了解这三者的实现原理，只是看一些文字说明，也很难理解。在本篇文章当中我们将通过 CPython 虚拟机的源代码来详细分析一下这三者是如何实现的。
+在本篇文章当中深入分析在 Python 当中 进程、线程和协程的区别，这三个概念会让人非常迷惑。如果没有深入了解这三者的实现原理，只是看一些文字说明，也很难理解。在本篇文章当中我们将通过分析部分源代码来详细分析一下这三者根本的区别是什么，重点是协程的应用场景和在 Python 当中是如何使用协程的，至于协程的实现原理在前面的文章当中已经详细讨论过了 [深入理解 Python 虚拟机：协程初探——不过是生成器而已](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/14coroutine.md) 和 [深入理解 Python 虚拟机：生成器停止背后的魔法](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/10generator.md)。
 
 ## 进程和线程
 
@@ -253,7 +253,6 @@ Coroutines are computer program components that allow execution to be suspended 
 在继续分析协程之前我们来讨论一下协程的应用场景。现在假如需要处理很多网络请求，一个线程处理一个请求，当处理一个请求的时候我们需要等待客户端的响应，线程在等待客户端响应的时候是处于阻塞状态不需要使用 CPU，假设 CPU 的使用率为 0.0001%，那么我们大概需要 1000000 个线程才能够将 CPU 的使用率达到 100%，而通常我们在内核创建一个线程大概需要 2MB 的内存，4GB 内存大概能够创建 2048 个线程，这远远达不到我们需要创建的线程个数。而我们可以通过创建协程来达到这一点要求，因为协程需要的内存比线程小的多，而且协程是在用户态实现的，不同的编程语言可以根据语言本身的情况进行实现。而我们在前面说明了一个线程可以被挂起，挂起之后也可以被继续执行，我们可以利用这一点，当协程发送一个网络请求之后就被挂起，这个时候切换到其他协程继续执行，这样就可以让一个线程充分利用 CPU 的资源。对应的伪代码如下：
 
 ```python
-
 def recv(socket):
   while True:
     try:
@@ -270,10 +269,25 @@ def event_loop():
   coroutines = [...]
   while coroutines.is_not_empty():
     coroutine = get_a_coroutine(coroutines)
-    res = coroutine.run()
+    res = coroutine.run() # 当程序从这里返回的时候要么是协程停下来了，要么是协程执行完成了
     if coroutine.is_not_finished():
       append(coroutines)
 ```
 
+线程和进程的概念相对来说比较容易理解，协程比较困难，协程是用户态实现的，它是由编程语言自己来进行调度，而不是由操作系统进行调度的，这是他和线程和进程最大的区别，而且协程相比起线程和进程来说需要的内存资源更少（如果想具体了解生成器和协程的实现原理，可以参考这两篇文章 [深入理解 Python 虚拟机：协程初探——不过是生成器而已](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/14coroutine.md) 和 [深入理解 Python 虚拟机：生成器停止背后的魔法](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/10generator.md)）。
 
+对于我们在实际编程当中来说，只有当你的程序由很多 IO 密集型的程序的时候才需要考虑使用协程，比如服务器开发。这是因为只有在这种场景下才能够发挥协程的性能，如果你的程序是计算密集型的程序就不需要使用协程了，因为协程相对于线程来说还会有协程切换的开销。
+
+## 总结
+
+在本篇文章当中主要讨论了进程、线程和协程的区别，以及在 Linux 当中创建线程的 API，以及 CPython 当中创建线程的流程，最后讨论了一下协程的使用场景，为什么需要使用协程以及在 Python 当中是如何使用协程的。只有当你的程序是有比较多的 IO 操作的时候，你才需要考虑使用协程，因为协程提升的是 CPU 的利用率，如果你的程序本来 CPU 利用率就很高了，比如有很多的数学计算，你就不需要使用协程了。
+
+---
+
+本篇文章是深入理解 python 虚拟机系列文章之一，文章地址：https://github.com/Chang-LeHung/dive-into-cpython
+
+更多精彩内容合集可访问项目：<https://github.com/Chang-LeHung/CSCore>
+
+关注公众号：一无是处的研究僧，了解更多计算机（Java、Python、计算机系统基础、算法与数据结构）知识。
+![](../qrcode2.jpg)
 
