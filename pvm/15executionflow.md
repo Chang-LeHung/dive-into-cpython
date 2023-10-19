@@ -107,6 +107,11 @@ if __name__ == '__main__':
             raise
         self._started.wait()
  
+```
+
+在上面的代码当中最核心的一行代码就是 `_start_new_thread(self._bootstrap, ())`，这行代码的含义是启动一个新的线程去执行 `self._bootstrap` ，在 `self._bootstrap` 当中会调用 `_bootstrap_inner`，在 `_bootstrap_inner` 当中会调用 Thread 的 run 方法，而在这个方法当中最终调用了我们传递给 Thread 类的函数。
+
+```python
     def run(self):
         try:
             if self._target is not None:
@@ -147,8 +152,6 @@ if __name__ == '__main__':
         finally:
             self._delete()
 ```
-
-在上面的代码当中最核心的一行代码就是 `_start_new_thread(self._bootstrap, ())`，这行代码的含义是启动一个新的线程去执行 `self._bootstrap` ，在 `self._bootstrap` 当中会调用 `_bootstrap_inner`，在 `_bootstrap_inner` 当中会调用 Thread 的 run 方法，而在这个方法当中最终调用了我们传递给 Thread 类的函数。
 
 现在的问题是 _start_new_thread 是如何实现的？这个方法是 CPython 内部使用 C 语言实现的方法，在这里我们不再将全部的细节进行分析，只讨论大致的流程。
 
@@ -239,14 +242,15 @@ t_bootstrap(void *boot_raw)
 }
 ```
 
-
-
-
-
-
+从上面的整个创建线程的流程来看，当我们在 Python 层面创建一个线程之后，最终会调用 `pthread_create` 函数，真正创建一个线程（我们在前面已经讨论过这种线程能够被操作系统调度在 CPU 上运行，如果是多核机器的话，这两个线程可以在同一个时刻运行）去执行相应的 Python 代码。
 
 ## 协程
 
 Coroutines are computer program components that allow execution to be suspended and resumed, generalizing subroutines for cooperative multitasking.
 
-根据 wiki 的描述，协程是一个允许停下来和恢复执行的程序，
+根据 wiki 的描述，协程是一个允许停下来和恢复执行的程序。在 Python 当中协程是基于生成器实现的（如果想具体了解生成器和协程的实现原理，可以参考这两篇文章 [深入理解 Python 虚拟机：协程初探——不过是生成器而已](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/14coroutine.md) 和 [深入理解 Python 虚拟机：生成器停止背后的魔法](https://github.com/Chang-LeHung/dive-into-cpython/blob/master/pvm/10generator.md)），因为生成器是满足这个要求的，他可以让程序执行到函数的某一部分停下来，然后还能够继续恢复执行。
+
+在继续分析协程之前我们来讨论一下协程的应用场景。现在加入需要处理很多网络请求，一个线程处理一个请求，当处理一个请求的时候我们需要等待客户端的响应，线程在等待客户端响应的时候是处于阻塞状态不需要使用 CPU，
+
+
+
