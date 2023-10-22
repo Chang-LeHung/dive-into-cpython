@@ -25,7 +25,7 @@
 - [深入理解 Python 虚拟机：字节码教程(2)——控制流是如何实现的？](pvm/05bytecode_tutorial.md)
 - [深入理解 Python 虚拟机：字节码教程(3)——深入剖析循环实现原理](pvm/06bytecode_tutorial.md)
 
-### 程序执行
+### 语言特性
 
 - [深入理解 Python 虚拟机：程序执行的载体——栈帧](pvm/07frameobject.md)
 - [深入理解 Python 虚拟机：调试器实现原理与源码分析](pvm/08debugger.md)
@@ -35,6 +35,10 @@
 - [深入理解 python 虚拟机：GIL 源码分析——天使还是魔鬼？](pvm/13gil.md)
 - [深入理解 Python 虚拟机：协程初探——不过是生成器而已](pvm/14coroutine.md)
 - [深入理解 Python 虚拟机：进程、线程和协程](pvm/15executionflow.md)
+
+### 并发系统设计
+- [深入理解 Python 虚拟机：asyncio 设计原理与实现](pvm/17asyncio.md)
+
 
 ## 对象系统
 
