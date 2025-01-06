@@ -99,7 +99,7 @@ export default {
     // 使用硬编码的方式配置 sidebar
     sidebar: [
       {
-        text: 'Builtin 对象实现',
+        text: 'Builtin 对象',
         collapsed: true,
         collapsible: true,
         items: [
@@ -140,7 +140,7 @@ export default {
           { text: '字节码教程(上)', link: '/pvm/04bytecode_tutorial' },
           { text: '字节码教程(中)', link: '/pvm/05bytecode_tutorial' },
           { text: '字节码教程(下)', link: '/pvm/06bytecode_tutorial' },
-          { text: 'Frame Object', link: '/pvm/07frameobject' },
+          { text: '深入分析栈帧', link: '/pvm/07frameobject' },
           { text: '调试器', link: '/pvm/08debugger' },
         ]
       }
