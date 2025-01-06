@@ -1,1 +1,0 @@
-const e=JSON.parse('{"key":"v-150d7c7d","path":"/obsy/","title":"对象系统","lang":"zh-CN","frontmatter":{},"headers":[],"git":{"updatedTime":1695280627000,"contributors":[{"name":"changlehung","email":"changlehung@qq.com","commits":1}]},"filePathRelative":"obsy/README.md"}');export{e as data};
