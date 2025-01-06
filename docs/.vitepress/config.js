@@ -164,7 +164,7 @@ export default {
     ],
 
     nav: [
-      { text: "Home", link: "https://chang-lehung.github.io/#/" },
+      { text: "Home", link: "https://github.com/Chang-LeHung/dive-into-cpython" },
       { text: "About", link: "https://chang-lehung.github.io/#/" },
       {
         link: "https://github.com/Chang-LeHung",
