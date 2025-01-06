@@ -23,3 +23,7 @@ node_modules
 .cache
 .mypy_cache
 *upload.md*
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+docs/.vitepress/dist/*
+docs/.vitepress/cache/*
