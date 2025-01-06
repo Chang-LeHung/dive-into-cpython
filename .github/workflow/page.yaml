@@ -1,0 +1,34 @@
+name: Deploy Pages
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js 16.15.0
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16.x"
+      - name: Cache NPM dependencies
+        uses: actions/cache@v2
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-npm-cache
+          restore-keys: |
+            ${{ runner.OS }}-npm-cache
+      - name: Install Dependencies
+        run: npm install
+      - name: Build
+        run: npm run docs:build
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.DIVE_INTO_HOTSPOT }}
+          publish_dir: ./docs/.vitepress/dist
