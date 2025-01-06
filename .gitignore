@@ -22,4 +22,4 @@ node_modules
 .temp
 .cache
 .mypy_cache
-*upload*
+*upload.md*
