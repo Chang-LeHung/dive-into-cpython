@@ -1,0 +1,19 @@
+{
+  "name": "dive-into-cpython",
+  "version": "1.0.0",
+  "description": "dive into cpython",
+  "main": "index.js",
+  "repository": "git@github.com:Chang-LeHung/dive-into-cpython.git",
+  "author": "changlehung <changlehung@gmail.com>",
+  "license": "NO",
+  "private": true,
+  "devDependencies": {
+    "vitepress": "^1.5.0",
+    "vue": "^3.5.13"
+  },
+  "scripts": {
+    "dev": "vitepress dev docs --open",
+    "build": "vitepress build docs",
+    "serve": "vitepress serve docs"
+  }
+}
