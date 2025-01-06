@@ -100,6 +100,8 @@ export default {
     sidebar: [
       {
         text: 'Builtin 对象实现',
+        collapsed: true,
+        collapsible: true,
         items: [
           { text: 'List 对象', link: '/objects/01list' },
           { text: 'Tuple 对象', link: '/objects/02tuple' },
@@ -114,6 +116,8 @@ export default {
       },
       {
         text: '对象系统',
+        collapsed: true,
+        collapsible: true,
         items: [
           { text: '类机制', link: '/obsy/01class' },
           { text: '应用实例', link: '/obsy/02application' },
@@ -126,6 +130,8 @@ export default {
       },
       {
         text: '虚拟机',
+        collapsed: true,
+        collapsible: true,
         items: [
           { text: 'PYC 文件', link: '/pvm/01pyc' },
           { text: '反序列化 PYC', link: '/pvm/09binpyc' },
