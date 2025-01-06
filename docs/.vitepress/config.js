@@ -64,7 +64,7 @@ export default {
     
     // 页脚配置
     footer: {
-      message: 'Released under the MIT License.',
+      message: '转载请联系作者',
       copyright: 'Copyright © 2024-present Chang-LeHung'
     },
     
