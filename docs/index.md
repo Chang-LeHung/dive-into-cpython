@@ -1,43 +1,34 @@
-<!-- ---
+---
 layout: home
 
 hero:
-  name: VitePress-Fun
-  text: VitePress趣玩系列
-  tagline: Lorem ipsum...
+  name: Dive-into-cpython 
+  text: 深入分析 CPython Internals
+  tagline: cpython 源代码...
+  image:
+    src: /python-logo.svg
+    alt: Python Logo
+    style:
+      width: '300px'
+      height: '300px'
 
   actions:
     - theme: brand
       text: Get Started
-      link: /guide/what-is-vitepress
+      link: /objects/01list
     - theme: alt
       text: View on GitHub
-      link: https://github.com/vuejs/vitepress
+      link: https://github.com/Chang-LeHung/dive-into-cpython
 
 features:
-  - icon: ⚡️
-    title: Vite, The DX that can't be beat
-    details: Lorem ipsum...
-  - icon: 🖖
-    title: Power of Vue meets Markdown
-    details: Lorem ipsum...
-  - icon: 🛠️
-    title: Simple and minimal, always
-    details: Lorem ipsum...
---- -->
+  - icon: 📦
+    title: CPython Builtin data structures
+    details: int, float, complex, list, dict...
+  - icon: 🔧
+    title: CPython Builtin object system
+    details: object, type, function, method, class...
+  - icon: 🚀
+    title: Python Virtual Machine
+    details: bytecode, opcode, frame, code object, function object...
 
-# Dive into Hotspot
 
-欢迎来到 HotSpot JVM 深度剖析系列文章。
-
-## 内容概览
-
-- JVM 基础知识
-- 垃圾回收机制
-- 类加载机制
-- 性能调优
-- 实战案例
-
-## 如何使用本教程
-
-建议按照目录顺序阅读，循序渐进地掌握 HotSpot JVM 的核心概念。
