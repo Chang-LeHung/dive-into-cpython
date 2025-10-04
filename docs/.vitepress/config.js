@@ -143,6 +143,14 @@ export default {
           { text: '深入分析栈帧', link: '/pvm/07frameobject' },
           { text: '调试器', link: '/pvm/08debugger' },
         ]
+      },
+      {
+        text: '新特性',
+        collapsed: true,
+        collapsible: true,
+        items: [
+          { text: 'Python 3.14 新特性', link: '/new/314' }
+        ]
       }
     ],
 

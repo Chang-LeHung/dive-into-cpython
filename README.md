@@ -59,6 +59,10 @@
 - [深入理解 Python 虚拟机：多继承与 mro](docs/obsy/04mro.md)
 - [深入理解 Python 虚拟机：super 超级魔法的背后原理](docs/obsy/07super.md)
 
+## 🎉 Python 新特性
+
+- [Python 3.14 新特性](docs/new/314.md)
+
 ## 🔧 给 cpython 添加 C 扩展模块
 
 ## 🤝 Contributions
