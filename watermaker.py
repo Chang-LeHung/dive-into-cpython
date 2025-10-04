@@ -14,10 +14,10 @@ def add_water_mark():
     for image_path in os.listdir("images"):
         if not image_path.endswith("png"):
             continue
-        filename = os.path.join("images", image_path)
+        filename = os.path.join("docs/images", image_path)
         if image_path not in marked:
             print(f"move {image_path} to nowatermark directory")
-            shutil.copy(filename, os.path.join("../nowatermarker", image_path))
+            shutil.copy(filename, os.path.join("../../nowatermarker", image_path))
             marked.add(image_path)
             original_image = Image.open(filename)
             original_width, original_height = original_image.size
