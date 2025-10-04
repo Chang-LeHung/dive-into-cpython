@@ -61,19 +61,19 @@ export default {
       prev: '上一页',
       next: '下一页'
     },
-    
+
     // 页脚配置
     footer: {
       message: '转载请联系作者',
       copyright: 'Copyright © 2024-present Chang-LeHung'
     },
-    
+
     // 大纲配置
     outline: {
       level: [2, 3],     // 仅显示 h2 和 h3 标题
       label: '目录'      // 大纲标题
     },
-    
+
     // 搜索配置
     search: {
       provider: 'local',
